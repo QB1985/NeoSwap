@@ -1,8 +1,7 @@
 # NeoSwap
 
 Gear swapping without writing a LuAshitacast profile. Build your sets in a window shaped like the game's equipment
-menu, say when each one is worn, and NeoSwap swaps them as you play. Restyled after YunaUI (the same look as NeoMOG,
-NeoCrafty and NeoPoints). Ashita v4, CatsEyeXI.
+menu, say when each one is worn, and NeoSwap swaps them as you play. Restyled after YunaUI. Ashita v4, CatsEyeXI.
 
 **Install:** download `NeoSwap-<version>.zip` from [Releases](https://github.com/QB1985/NeoSwap/releases), unzip it into
 your Ashita `addons` folder (so you have `addons/NeoSwap/neoswap.lua`), then load it with `/addon load neoswap`. `/nswap` shows or hides the window, `/nswap config` opens the settings.
