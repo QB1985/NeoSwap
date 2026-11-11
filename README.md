@@ -64,6 +64,8 @@ held together such as Back + Start), and change any binding (Change, then press 
 - **Jobs** (left): up / down picks a job (or Global), right or Confirm goes into its sets.
 - **Sets / Commands** (middle): up / down, Confirm opens a set (and goes to its slots) or a command. The second action
   button is *Equip now* on a set, *Run* on a command. LB / RB switch Sets / Commands. Left goes back to the jobs.
+  Up from the first one (or the only row of an empty list) is **+ New set** / **+ New command**: Confirm opens its
+  menu, up / down and Confirm make one (a new set opens at its slots).
 - **Slots** (the equipment grid): the D-pad moves, Confirm lists the slot's gear, the second action empties the slot.
 - **Gear** (the list beside the grid): up / down, Confirm puts the piece in the slot.
 - **Back** goes one step back each time; from the jobs it minimizes NeoSwap.

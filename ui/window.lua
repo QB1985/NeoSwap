@@ -445,20 +445,32 @@ local function entry_header(dl, abbr, W)
     imgui.Dummy({ W, h });
 end
 
--- The "+ New set" menu
+-- The "+ New set" menu (st.pad_menu: the controller's row in it)
+local set_pad_opened = false;
 local function new_set_menu(abbr)
+    if st.pad_menu and not imgui.IsPopupOpen('##ns_new_pop') then imgui.OpenPopup('##ns_new_pop'); set_pad_opened = true; end
     local pv = popup_style();
     if imgui.BeginPopup('##ns_new_pop') then
+        if set_pad_opened and not st.pad_menu then imgui.CloseCurrentPopup(); set_pad_opened = false; end
         theme.spaced(imgui.GetWindowDrawList(), imgui.GetCursorScreenPos(), select(2, imgui.GetCursorScreenPos()), 'A SET FOR', u32(C.muted), 2);
         imgui.Dummy({ 200, imgui.GetTextLineHeight() });
-        for _, k in ipairs(rules.KINDS) do
-            if imgui.Selectable('  ' .. k.label .. '##ns_new_' .. k.key, false, 0, { 220, 0 }) then
+        for i, k in ipairs(rules.KINDS) do
+            local hi = st.pad_menu == i;
+            if imgui.Selectable('  ' .. k.label .. '##ns_new_' .. k.key, hi, 0, { 220, 0 }) then
                 local s = store.new_set(abbr, k.key, unique_name(abbr, k.label));
                 ui.select_set(s.id);
             end
-            if imgui.IsItemHovered() then tip(k.hint); end
+            if hi then
+                local a1, b1 = imgui.GetItemRectMin(); if type(a1) == 'table' then a1, b1 = a1.x or a1[1], a1.y or a1[2]; end
+                local a2, b2 = imgui.GetItemRectMax(); if type(a2) == 'table' then a2, b2 = a2.x or a2[1], a2.y or a2[2]; end
+                nav.ring(imgui.GetWindowDrawList(), a1, b1, a2, b2, 4);
+                if st.pad_menu_moved then imgui.SetScrollHereY(0.5); st.pad_menu_moved = false; end
+            end
+            if imgui.IsItemHovered() or hi then tip(k.hint); end
         end
         imgui.EndPopup();
+    else
+        set_pad_opened = false;
     end
     popup_pop(pv);
 end
@@ -592,9 +604,13 @@ local function job_column(dl, abbr, W, H)
     local tp = theme.segmented('##ns_coltab', { { 'sets', 'Sets (' .. ns .. ')', 'This job\'s gear sets' },
         { 'cmds', 'Commands (' .. nc_ .. ')', 'This job\'s own commands: steps NeoSwap runs for you (Elemental Siphon...)' } }, st.tab);
     if tp and tp ~= st.tab then st.tab = tp; st.import = nil; st.style = false; end
+    local n_items = (st.tab == 'cmds') and #commands.list(abbr) or store.count(abbr);
+    if nav.zone == 'list' and (nav.row or 0) > n_items then nav.row = n_items; end   -- (an empty list: on "+ New")
     st.vis = {};
+    st.pad_menu = (nav.zone == 'newmenu' and nav.shown() and st.tab ~= 'cmds') and nav.mrow or nil;
     if st.tab == 'cmds' then
         local _, cy = imgui.GetCursorScreenPos();
+        cview.pad.menu = (nav.zone == 'newmenu' and nav.shown()) and nav.mrow or nil;
         cview.list(dl, abbr, W, y0 + H - cy, st.cmd, cview.on_pick, nav.is('list') and nav.row or nil);
         st.vis = cview.order or {};
         imgui.EndGroup();
@@ -614,6 +630,7 @@ local function job_column(dl, abbr, W, H)
     imgui.SetCursorScreenPos({ x0 + W - bw, sy - 3 });
     local nc, nh = theme.pill('##ns_new', '+ New set', true);
     if nh then tip('Make a set: pick what it is for (Idle, a weapon skill, spells...)'); end
+    if nav.is('list') and nav.row == 0 then nav.ring(dl, x0 + W - bw, sy - 3, x0 + W, sy - 3 + theme.pill_h(), theme.pill_h() / 2); end
     if nc then imgui.OpenPopup('##ns_new_pop'); end
     new_set_menu(abbr);
     imgui.SetCursorScreenPos({ x0, sy + lh + 6 });
@@ -1204,8 +1221,9 @@ end
 function ui.pad_hint()
     local z = nav.zone;
     if z == 'list' then
-        return st.tab == 'cmds' and 'Up / down: command   Confirm: open   Second: Run   Left: jobs   LB / RB: Sets / Commands'
-            or 'Up / down: set   Confirm: open it   Second: Equip now   Left: jobs   Right: its slots   LB / RB: Sets / Commands';
+        return st.tab == 'cmds' and 'Up / down: command (top: + New)   Confirm: open   Second: Run   Left: jobs   LB / RB: Sets / Commands'
+            or 'Up / down: set (top: + New set)   Confirm: open it   Second: Equip now   Left: jobs   Right: its slots   LB / RB: Sets / Commands';
+    elseif z == 'newmenu' then return 'Up / down: pick   Confirm: make it   Back: the list';
     elseif z == 'grid' then return 'D-pad: slot   Confirm: its gear   Second: empty the slot   Back: the sets';
     elseif z == 'picker' then return 'Up / down: piece   Confirm: put it in the slot   Back: the slots'; end
     return 'Up / down: job   Right / Confirm: its sets   LB / RB: Sets / Commands   Back: minimize';
@@ -1214,6 +1232,7 @@ end
 local function to_list_zone()
     nav.zone = (st.job == 'global') and 'rail' or 'list';
     nav.moved = true;
+    for i, id in ipairs(st.vis or {}) do if id == st.set then nav.row = i; end end      -- (back on the set you were in)
 end
 
 function ui.on_action(a)
@@ -1246,12 +1265,38 @@ function ui.on_action(a)
         return;
     end
 
+    if z == 'newmenu' then
+        -- the "+ New set" / "+ New command" menu
+        local opts = (st.tab == 'cmds') and cview.new_options(st.job) or rules.KINDS;
+        local n = #opts;
+        nav.mrow = math.max(1, math.min(n, nav.mrow or 1));
+        if a == 'up' then nav.mrow = math.max(1, nav.mrow - 1); st.pad_menu_moved = true; cview.pad.moved = true;
+        elseif a == 'down' then nav.mrow = math.min(n, nav.mrow + 1); st.pad_menu_moved = true; cview.pad.moved = true;
+        elseif a == 'back' or a == 'left' then nav.zone = 'list'; nav.row = 0;
+        elseif a == 'ok' then
+            local o = opts[nav.mrow];
+            if st.tab == 'cmds' then
+                local c = o.make();
+                cview.on_pick(c.id);
+                nav.zone = 'list'; nav.row = #commands.list(st.job); nav.moved = true;
+            else
+                local s = store.new_set(st.job, o.key, unique_name(st.job, o.label));
+                ui.select_set(s.id);
+                nav.zone = 'grid'; nav.eq = 1;
+            end
+        end
+        return;
+    end
+
     if z == 'list' then
         local n = #st.vis;
+        nav.row = math.max(0, math.min(n, nav.row or 0));
         local id = st.vis[nav.row];
-        if a == 'up' then nav.row = math.max(1, nav.row - 1); nav.moved = true;
+        if a == 'up' then nav.row = math.max(0, nav.row - 1); nav.moved = true;
         elseif a == 'down' then nav.row = math.max(1, math.min(n, nav.row + 1)); nav.moved = true;
         elseif a == 'left' or a == 'back' then nav.zone = 'rail'; nav.moved = true;
+        elseif a == 'ok' and nav.row == 0 then
+            nav.zone = 'newmenu'; nav.mrow = 1; st.pad_menu_moved = true; cview.pad.moved = true;
         elseif a == 'ok' and id then
             if st.tab == 'cmds' then cview.on_pick(id);
             else ui.select_set(id); nav.zone = 'grid'; nav.eq = 1; end

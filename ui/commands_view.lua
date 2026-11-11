@@ -23,36 +23,47 @@ local function say(msg, kind) status.set(msg, kind or 'ok', 5); end
 ----------------------------------------------------------------------------------------------------
 -- The list (middle column)
 ----------------------------------------------------------------------------------------------------
+-- What "+ New command" offers: { label, hint, make = function() return the new command end }
+function view.new_options(abbr)
+    local t = { { label = 'An empty command', make = function() return commands.new(abbr, { name = 'New command', alias = '', steps = {} }); end } };
+    for _, mine in ipairs({ true, false }) do
+        for _, tp in ipairs(commands.TEMPLATES) do
+            if (tp.job == abbr) == mine then
+                t[#t + 1] = { label = tp.name .. '  (' .. (mine and tp.alias or tp.job) .. ')', sep = (#t > 0 and t[#t].mine ~= mine) or nil,
+                    mine = mine, hint = tp.hint .. (mine and '' or ('\n(made for ' .. tp.job .. ')')),
+                    make = function() return commands.new(abbr, { name = tp.name, alias = tp.alias, steps = tp.steps }); end };
+            end
+        end
+    end
+    return t;
+end
+
+-- view.pad: { at_new = true } (the controller is on "+ New command"), { menu = row } (on the menu's row)
+view.pad = {};
+local pad_opened = false;
 local function new_menu(abbr, on_pick)
+    if view.pad.menu and not imgui.IsPopupOpen('##ns_cmd_new_pop') then imgui.OpenPopup('##ns_cmd_new_pop'); pad_opened = true; end
     local pv = when.popup_style();
     if imgui.BeginPopup('##ns_cmd_new_pop') then
-        if imgui.Selectable('  An empty command##ns_cn_empty', false, 0, { 260, 0 }) then
-            local c = commands.new(abbr, { name = 'New command', alias = '', steps = {} });
-            on_pick(c.id);
-        end
-        local any = false;
-        for i, t in ipairs(commands.TEMPLATES) do
-            if t.job == abbr then
-                if not any then imgui.Separator(); any = true; end
-                if imgui.Selectable('  ' .. t.name .. '  (' .. t.alias .. ')##ns_cn_t' .. i, false, 0, { 260, 0 }) then
-                    local c = commands.new(abbr, { name = t.name, alias = t.alias, steps = t.steps });
-                    on_pick(c.id);
-                end
-                if imgui.IsItemHovered() then tip(t.hint); end
+        if pad_opened and not view.pad.menu then imgui.CloseCurrentPopup(); pad_opened = false; end
+        for i, o in ipairs(view.new_options(abbr)) do
+            if o.sep then imgui.Separator(); end
+            local hi = view.pad.menu == i;
+            if imgui.Selectable('  ' .. o.label .. '##ns_cn_' .. i, hi, 0, { 260, 0 }) then
+                local c = o.make();
+                on_pick(c.id);
             end
-        end
-        local others = false;
-        for i, t in ipairs(commands.TEMPLATES) do
-            if t.job ~= abbr then
-                if not others then imgui.Separator(); others = true; end
-                if imgui.Selectable('  ' .. t.name .. '  (' .. t.job .. ')##ns_cn_o' .. i, false, 0, { 260, 0 }) then
-                    local c = commands.new(abbr, { name = t.name, alias = t.alias, steps = t.steps });
-                    on_pick(c.id);
-                end
-                if imgui.IsItemHovered() then tip(t.hint .. '\n(made for ' .. t.job .. ')'); end
+            if hi then
+                local a1, b1 = imgui.GetItemRectMin(); if type(a1) == 'table' then a1, b1 = a1.x or a1[1], a1.y or a1[2]; end
+                local a2, b2 = imgui.GetItemRectMax(); if type(a2) == 'table' then a2, b2 = a2.x or a2[1], a2.y or a2[2]; end
+                nav.ring(imgui.GetWindowDrawList(), a1, b1, a2, b2, 4);
+                if view.pad.moved then imgui.SetScrollHereY(0.5); view.pad.moved = false; end
             end
+            if o.hint and (imgui.IsItemHovered() or hi) then tip(o.hint); end
         end
         imgui.EndPopup();
+    else
+        pad_opened = false;
     end
     when.popup_pop(pv);
 end
@@ -67,6 +78,7 @@ function view.list(dl, abbr, W, H, sel, on_pick, nav_row)
     imgui.SetCursorScreenPos({ x0 + W - bw, sy - 3 });
     local nc, nh = theme.pill('##ns_cmd_new', '+ New command', true);
     if nh then tip('Make a command: an empty one, or a ready-made one (Elemental Siphon...)'); end
+    if nav_row == 0 then nav.ring(dl, x0 + W - bw, sy - 3, x0 + W, sy - 3 + theme.pill_h(), theme.pill_h() / 2); end
     if nc then imgui.OpenPopup('##ns_cmd_new_pop'); end
     new_menu(abbr, on_pick);
     imgui.SetCursorScreenPos({ x0, sy + lh + 6 });
