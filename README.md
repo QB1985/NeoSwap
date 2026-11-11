@@ -204,3 +204,9 @@ is kept as `sets.lua.bak`). It's a plain Lua table you can back up or share.
 Like LuAshitacast, a set for an action is held until the action ends (the game says so) or until its time runs
 out: a spell's cast time cut by your Fast Cast plus a margin, a weapon skill 3 s, an ability 2.5 s, a ranged attack
 10 s cut by Snapshot. Settings > Timing changes them.
+
+## Releasing (for the maintainer)
+
+Bump `addon.version` in `neoswap.lua` and push to `main`: the *Release* workflow tags the commit `v<version>`,
+builds `NeoSwap-<version>.zip` and publishes the release. Put the description in `release-notes/<version>.md`
+(GitHub's generated notes are used if there's none). It can also be run by hand from the Actions tab.

@@ -1,0 +1,5 @@
+# kept out of the release zip
+.github          export-ignore
+.gitattributes   export-ignore
+.gitignore       export-ignore
+release-notes    export-ignore

@@ -1,0 +1,60 @@
+# Publishes a release whenever the version in neoswap.lua (addon.version = 'x.y.z') is new:
+# tags the commit v<version>, builds NeoSwap-<version>.zip (unzips to NeoSwap/) and uses
+# release-notes/<version>.md as the description (GitHub's generated notes if there's none).
+# Also runs by hand: Actions > Release > Run workflow.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [neoswap.lua]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read the version
+        id: v
+        run: |
+          ver=$(grep -oP "^addon\.version\s*=\s*'\K[^']+" neoswap.lua)
+          if [ -z "$ver" ]; then echo "No addon.version in neoswap.lua"; exit 1; fi
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "Version: $ver"
+
+      - name: Already released?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.v.outputs.version }}" >/dev/null 2>&1; then
+            echo "v${{ steps.v.outputs.version }} is already released - nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the zip
+        if: steps.check.outputs.skip == 'false'
+        run: git archive --format=zip --prefix=NeoSwap/ -o "NeoSwap-${{ steps.v.outputs.version }}.zip" HEAD
+
+      - name: Publish
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${{ steps.v.outputs.version }}"
+          notes="release-notes/$ver.md"
+          if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
+          gh release create "v$ver" "NeoSwap-$ver.zip" --target "$GITHUB_SHA" --title "NeoSwap $ver" "$@"
