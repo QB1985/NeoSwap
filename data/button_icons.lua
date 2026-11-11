@@ -1,0 +1,26 @@
+-- button_icons.lua : ready-made icons for command buttons (item icons from the game; looked up by name - any the
+-- game doesn't have are left out). Any other item can be picked by searching, or a job emblem.
+return {
+    { label = 'Warp',           item = 'Warp Ring' },
+    { label = 'Warp (scroll)',  item = 'Instant Warp' },
+    { label = 'Teleport',       item = 'Dim. Ring (Holla)' },
+    { label = 'Teleport',       item = 'Dim. Ring (Dem)' },
+    { label = 'Teleport',       item = 'Dim. Ring (Mea)' },
+    { label = 'Teleport',       item = 'Tavnazian Ring' },
+    { label = 'Reraise',        item = 'Instant Reraise' },
+    { label = 'Chocobo',        item = 'Chocobo Whistle' },
+    { label = 'Silence',        item = 'Echo Drops' },
+    { label = 'Curse / Doom',   item = 'Holy Water' },
+    { label = 'Status',         item = 'Remedy' },
+    { label = 'Status',         item = 'Panacea' },
+    { label = 'HP',             item = 'Hi-Potion' },
+    { label = 'MP',             item = 'Hi-Ether' },
+    { label = 'Invisible',      item = 'Prism Powder' },
+    { label = 'Sneak',          item = 'Silent Oil' },
+    { label = 'Food',           item = 'Sole Sushi' },
+    { label = 'Elemental',      item = 'Fire Crystal' },
+    { label = 'Light',          item = 'Light Crystal' },
+    { label = 'Dark',           item = 'Dark Crystal' },
+    { label = 'Treasure',       item = 'Forbidden Key' },
+    { label = 'Experience',     item = 'Emperor Band' },
+};

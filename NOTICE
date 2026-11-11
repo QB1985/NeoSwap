@@ -1,0 +1,16 @@
+NeoSwap
+Copyright (c) 2026 KS1985
+
+NeoSwap is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License as published by the Free Software Foundation, version 3
+(see LICENSE). It is distributed WITHOUT ANY WARRANTY.
+
+It includes work from:
+
+* LuAshitacast by Thorny (https://github.com/ThornyFFXI/LuAshitacast), GNU General Public License v3.0:
+  the way actions are held back and re-sent after a swap, the equip / equipset / lockstyle packets, the
+  action-complete and pet-action reading, the Vana'diel time and weather signatures, and the default timings
+  (core/engine.lua, core/game.lua), and the augment decoding and tables (core/augments.lua). GPL-3.0 code may be combined with AGPL-3.0 code (GPL-3.0 section 13).
+
+* NeoMOG, NeoCrafty and YunaUI (same author): the theme (ui/theme.lua), the item icon / tooltip code
+  (core/items.lua), the bag reading (core/bags.lua), the job emblems (images/jobs).

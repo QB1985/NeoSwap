@@ -1,0 +1,4 @@
+config/
+*.bak
+.DS_Store
+Thumbs.db

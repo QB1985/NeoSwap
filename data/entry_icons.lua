@@ -1,0 +1,26 @@
+-- entry_icons.lua : ready-made icons for custom entries in the jobs list (item icons from the game; looked up by name).
+-- Any other item can be picked by searching, or a job emblem.
+return {
+    { label = 'Mining',      item = 'Pickaxe' },
+    { label = 'Harvesting',  item = 'Sickle' },
+    { label = 'Logging',     item = 'Hatchet' },
+    { label = 'Excavation',  item = 'Pickaxe' },
+    { label = 'Fishing',     item = 'Willow Fishing Rod' },
+    { label = 'Fishing (rod)', item = 'Lu Shang\'s Fishing Rod' },
+    { label = 'Digging',     item = 'Gysahl Greens' },
+    { label = 'Clamming',    item = 'Clamming Kit' },
+    { label = 'Crafting',    item = 'Fire Crystal' },
+    { label = 'Smithing',    item = 'Iron Ingot' },
+    { label = 'Goldsmithing', item = 'Gold Ingot' },
+    { label = 'Woodworking', item = 'Ash Lumber' },
+    { label = 'Clothcraft',  item = 'Cotton Cloth' },
+    { label = 'Leathercraft', item = 'Sheep Leather' },
+    { label = 'Bonecraft',   item = 'Bone Chip' },
+    { label = 'Alchemy',     item = 'Distilled Water' },
+    { label = 'Cooking',     item = 'Sleepshroom' },
+    { label = 'Chocobo',     item = 'Chocobo Whistle' },
+    { label = 'Gardening',   item = 'Flowerpot' },
+    { label = 'Treasure',    item = 'Forbidden Key' },
+    { label = 'Experience',  item = 'Emperor Band' },
+    { label = 'Travel',      item = 'Instant Warp' },
+};
