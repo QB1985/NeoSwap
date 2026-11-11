@@ -57,7 +57,7 @@ your Ashita `addons` folder (so you have `addons/NeoSwap/neoswap.lua`), then loa
 
 ## Controller
 
-Settings > **Controller** (as in NeoMOG): turn on *Use a controller*, set an **Open / minimize** button (one, or two
+Settings > **Controller**: turn on *Use a controller*, set an **Open / minimize** button (one, or two
 held together such as Back + Start), and change any binding (Change, then press the button). The defaults cover Xbox
 (XInput) and PlayStation-style (DirectInput) pads: A / B / X confirm / back / second action, LB / RB the tabs.
 
