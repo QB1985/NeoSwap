@@ -1,6 +1,6 @@
 addon.name    = 'NeoSwap';
 addon.author  = 'KS1985';
-addon.version = '0.9.1';
+addon.version = '0.9.2';
 addon.desc    = 'Gear swapping without writing a profile: build your sets in an equipment menu, say when each is worn (idle, engaged, resting, weapon skills, abilities, spells, ranged, items, pet moves, with conditions), see their bonuses and clashes. Lockstyle and macro book per job. Restyled after YunaUI.';
 addon.link    = 'https://github.com/QB1985/NeoSwap';
 

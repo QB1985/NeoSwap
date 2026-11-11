@@ -66,6 +66,9 @@ held together such as Back + Start), and change any binding (Change, then press 
   button is *Equip now* on a set, *Run* on a command. LB / RB switch Sets / Commands. Left goes back to the jobs.
   Up from the first one (or the only row of an empty list) is **+ New set** / **+ New command**: Confirm opens its
   menu, up / down and Confirm make one (a new set opens at its slots).
+- **The job's options** (above the list): up from *+ New set* reaches the job's modes, Lockstyle and Macros. Up / down
+  moves, left / right changes a value (book, page, Off / Global / Own), Confirm switches the Macros switch or a mode,
+  and on an *Own* lockstyle opens its editor. The second action sets the macro book and page now.
 - **Slots** (the equipment grid): the D-pad moves, Confirm lists the slot's gear, the second action empties the slot.
 - **Gear** (the list beside the grid): up / down, Confirm puts the piece in the slot.
 - **Back** goes one step back each time; from the jobs it minimizes NeoSwap.

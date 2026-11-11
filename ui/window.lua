@@ -266,6 +266,31 @@ local function modes_used(abbr)
     return t;
 end
 
+-- The controller's stops in a job's header, top to bottom: { key, mode = name }
+local function head_items(abbr)
+    if abbr == nil or abbr == 'global' or store.is_entry(abbr) then return {}; end
+    local j = store.job(abbr, true);
+    local t = { { key = 'macro' } };
+    if j.macro and j.macro.on then t[#t + 1] = { key = 'book' }; t[#t + 1] = { key = 'page' }; end
+    t[#t + 1] = { key = 'lockstyle' };
+    if j.lockstyle and j.lockstyle.mode == 'job' then t[#t + 1] = { key = 'edit' }; end
+    for _, m in ipairs(modes_used(abbr)) do t[#t + 1] = { key = 'mode', mode = m }; end
+    return t;
+end
+local function head_at(key, mode)
+    if not nav.is('head') then return false; end
+    local it = head_items(st.job)[nav.hrow or 1];
+    return it ~= nil and it.key == key and (mode == nil or it.mode == mode);
+end
+local function head_ring(dl, key, x1, y1, x2, y2, r, mode)
+    if head_at(key, mode) then nav.ring(dl, x1, y1, x2, y2, r or 6); end
+end
+local function item_rect()
+    local a1, b1 = imgui.GetItemRectMin(); if type(a1) == 'table' then a1, b1 = a1.x or a1[1], a1.y or a1[2]; end
+    local a2, b2 = imgui.GetItemRectMax(); if type(a2) == 'table' then a2, b2 = a2.x or a2[1], a2.y or a2[2]; end
+    return a1 or 0, b1 or 0, a2 or 0, b2 or 0;
+end
+
 local function mode_pills(dl, list, W, idp)
     local x0, y0 = imgui.GetCursorScreenPos();
     local cx, cy = x0, y0;
@@ -275,6 +300,7 @@ local function mode_pills(dl, list, W, idp)
         local pw = theme.pill_w(lbl);
         if cx + pw > x0 + W and cx > x0 then cx = x0; cy = cy + theme.pill_h() + 5; end
         local c, h = theme.pill('##' .. idp .. i, lbl, on, cx, cy);
+        if idp == 'ns_jm' then head_ring(dl, 'mode', cx, cy, cx + pw, cy + theme.pill_h(), theme.pill_h() / 2, m); end
         if h then tip('Mode "' .. m .. '": sets that wait on it are ' .. (on and 'worn' or 'not worn') .. '.\nClick to switch. (/nswap mode ' .. m .. ')'); end
         if c then store.set_mode(m, not on); end
         cx = cx + pw + 5;
@@ -318,6 +344,7 @@ local function job_header(dl, abbr, W)
     local y = row_label('Macros', 'Change to this macro book and page when you change to ' .. abbr .. '.');
     imgui.SetCursorScreenPos({ lx + LW, y + (fh - 26) / 2 });
     if theme.switch('##ns_mac_on', j.macro.on == true) then j.macro.on = not j.macro.on; store.touch(); end
+    do local a1, b1, a2, b2 = item_rect(); head_ring(dl, 'macro', a1, b1, a2, b2, (b2 - b1) / 2); end
     if imgui.IsItemHovered() then tip(j.macro.on and ('On: book and page are set when you change to ' .. abbr) or 'Off: your macros are left as they are'); end
     next_row(y, math.max(fh, 26));
     if j.macro.on then
@@ -330,12 +357,14 @@ local function job_header(dl, abbr, W)
         imgui.SetCursorScreenPos({ x, y2 });
         local b, bc = theme.digits('ns_mac_b' .. abbr, tonumber(j.macro.book) or 1, 1, 40);
         if bc then j.macro.book = b; store.touch(); end
+        head_ring(dl, 'book', x, y2, x + dw, y2 + dh, 6);
         x = x + dw + 14;
         dl:AddText({ x, ty }, u32(C.muted), 'Page');
         x = x + tw('Page') + 8;
         imgui.SetCursorScreenPos({ x, y2 });
         local p, pc = theme.digits('ns_mac_p' .. abbr, tonumber(j.macro.page) or 1, 1, 10);
         if pc then j.macro.page = p; store.touch(); end
+        head_ring(dl, 'page', x, y2, x + select(1, theme.digits_size(10)), y2 + dh, 6);
         x = x + select(1, theme.digits_size(10)) + 14;
         if abbr == cur_abbr() and x + theme.pill_w('Set now') <= lx + W then
             imgui.SetCursorScreenPos({ x, y2 + (dh - theme.pill_h()) / 2 });
@@ -357,6 +386,7 @@ local function job_header(dl, abbr, W)
     if sx + sw > lx + W then sx = lx + W - sw; end
     imgui.SetCursorScreenPos({ sx, y + (fh - theme.pill_h()) / 2 });
     local pk = theme.segmented('##ns_ls_mode', opts, j.lockstyle.mode);
+    head_ring(dl, 'lockstyle', sx, y + (fh - theme.pill_h()) / 2, sx + sw, y + (fh - theme.pill_h()) / 2 + theme.pill_h(), theme.pill_h() / 2);
     if pk and pk ~= j.lockstyle.mode then
         j.lockstyle.mode = pk; store.touch();
         if pk == 'job' then st.style = true; st.slot = nil; end
@@ -370,6 +400,7 @@ local function job_header(dl, abbr, W)
         if ex + ew > lx + W then ex, ey = lx + LW, y + rh + 6; rh = rh + theme.pill_h() + 6; end   -- (no room: under it)
         imgui.SetCursorScreenPos({ ex, ey });
         local c, h = theme.button('##ns_ls_edit', el, { lit = st.style });
+        do local a1, b1, a2, b2 = item_rect(); head_ring(dl, 'edit', a1, b1, a2, b2, 6); end
         if h then tip('Build ' .. abbr .. '\'s own look in the editor on the right'); end
         if c then st.style = not st.style; st.slot = nil; st.import = nil; end
     end
@@ -1223,6 +1254,7 @@ function ui.pad_hint()
     if z == 'list' then
         return st.tab == 'cmds' and 'Up / down: command (top: + New)   Confirm: open   Second: Run   Left: jobs   LB / RB: Sets / Commands'
             or 'Up / down: set (top: + New set)   Confirm: open it   Second: Equip now   Left: jobs   Right: its slots   LB / RB: Sets / Commands';
+    elseif z == 'head' then return 'Up / down: option   Left / right: change it (Left on a switch: jobs)   Confirm: switch / edit   Second: macros now   Back: jobs';
     elseif z == 'newmenu' then return 'Up / down: pick   Confirm: make it   Back: the list';
     elseif z == 'grid' then return 'D-pad: slot   Confirm: its gear   Second: empty the slot   Back: the sets';
     elseif z == 'picker' then return 'Up / down: piece   Confirm: put it in the slot   Back: the slots'; end
@@ -1265,6 +1297,47 @@ function ui.on_action(a)
         return;
     end
 
+    if z == 'head' then
+        local items = head_items(st.job);
+        if #items == 0 then nav.zone = 'list'; nav.row = 0; return; end
+        nav.hrow = math.max(1, math.min(#items, nav.hrow or 1));
+        local it = items[nav.hrow];
+        local j = store.job(st.job, true);
+        j.macro = j.macro or { on = false, book = 1, page = 1 };
+        j.lockstyle = j.lockstyle or { mode = 'global', set = {} };
+        local LS = { 'off', 'global', 'job' };
+        if a == 'up' then nav.hrow = math.max(1, nav.hrow - 1);
+        elseif a == 'down' then
+            if nav.hrow >= #items then nav.zone = 'list'; nav.row = 0; else nav.hrow = nav.hrow + 1; end
+        elseif a == 'left' or a == 'right' then
+            local d = (a == 'right') and 1 or -1;
+            if it.key == 'book' then j.macro.book = math.max(1, math.min(40, (tonumber(j.macro.book) or 1) + d)); store.touch();
+            elseif it.key == 'page' then j.macro.page = math.max(1, math.min(10, (tonumber(j.macro.page) or 1) + d)); store.touch();
+            elseif it.key == 'lockstyle' then
+                local k = 2;
+                for n, m in ipairs(LS) do if m == j.lockstyle.mode then k = n; end end
+                k = math.max(1, math.min(3, k + d));
+                if LS[k] ~= j.lockstyle.mode then j.lockstyle.mode = LS[k]; store.touch(); if LS[k] ~= 'job' then st.style = false; end end
+            elseif a == 'left' then nav.zone = 'rail'; nav.moved = true;
+            elseif it.key == 'mode' then store.set_mode(it.mode, not store.mode(it.mode));
+            elseif it.key == 'macro' then j.macro.on = not j.macro.on; store.touch(); end
+        elseif a == 'ok' then
+            if it.key == 'macro' then j.macro.on = not j.macro.on; store.touch();
+            elseif it.key == 'mode' then store.set_mode(it.mode, not store.mode(it.mode));
+            elseif it.key == 'lockstyle' and j.lockstyle.mode ~= 'job' then
+                j.lockstyle.mode = (j.lockstyle.mode == 'off') and 'global' or (j.lockstyle.mode == 'global' and 'job' or 'off'); store.touch();
+            elseif it.key == 'lockstyle' or it.key == 'edit' then
+                st.style = true; st.slot = nil; st.import = nil; st.set = nil; nav.zone = 'grid'; nav.eq = 1;
+            elseif (it.key == 'book' or it.key == 'page') then
+                if usable_now(st.job) then engine.apply_macros(); say('Macro book ' .. j.macro.book .. ', page ' .. j.macro.page .. '.'); end
+            end
+        elseif a == 'alt' then
+            if j.macro.on and usable_now(st.job) then engine.apply_macros(); say('Macro book ' .. j.macro.book .. ', page ' .. j.macro.page .. '.'); end
+        elseif a == 'back' then nav.zone = 'rail'; nav.moved = true;
+        end
+        return;
+    end
+
     if z == 'newmenu' then
         -- the "+ New set" / "+ New command" menu
         local opts = (st.tab == 'cmds') and cview.new_options(st.job) or rules.KINDS;
@@ -1292,7 +1365,10 @@ function ui.on_action(a)
         local n = #st.vis;
         nav.row = math.max(0, math.min(n, nav.row or 0));
         local id = st.vis[nav.row];
-        if a == 'up' then nav.row = math.max(0, nav.row - 1); nav.moved = true;
+        if a == 'up' and nav.row == 0 then
+            local hi = head_items(st.job);
+            if #hi > 0 then nav.zone = 'head'; nav.hrow = #hi; end
+        elseif a == 'up' then nav.row = math.max(0, nav.row - 1); nav.moved = true;
         elseif a == 'down' then nav.row = math.max(1, math.min(n, nav.row + 1)); nav.moved = true;
         elseif a == 'left' or a == 'back' then nav.zone = 'rail'; nav.moved = true;
         elseif a == 'ok' and nav.row == 0 then
