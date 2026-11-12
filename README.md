@@ -98,7 +98,7 @@ work too.
 
 Ready-made (*+ New command*): **Elemental Siphon** for Summoner (`/siphon`): releases your avatar if one is out, calls
 the spirit for the weather or day, waits for it, wears your *Siphon* set, uses Elemental Siphon, then releases the
-spirit - the same as your old LuAshitacast profile did. And **Spirit for the day** (`/spirit`).
+spirit. And **Spirit for the day** (`/spirit`).
 
 **Button on screen** (under a command's name): gives the command a button you can put anywhere on screen. Click it to
 run the command (click again while it runs to stop it), drag it to move it. *Name* shows text (the command's name, or
