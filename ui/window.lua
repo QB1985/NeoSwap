@@ -563,7 +563,7 @@ local function set_card(dl, abbr, s, W, res, worn_now)
     -- the bonuses
     local jlv = view_level(abbr);
     local eff = tiers.effective(s, jlv > 0 and jlv or 99);
-    local sh = gear.summary(dl, x + 12, y + 14 + lh * 2, W - 24, eff, 2);
+    local sh = gear.summary(dl, x + 12, y + 14 + lh * 2, W - 24, (rules.with_base(store.sets(abbr), s, jlv > 0 and jlv or 99)), 2);
     if sh == 0 then
         local n = 0;
         for sl = 0, 15 do if eff[sl] and (eff[sl].id or eff[sl].remove) then n = n + 1; end end
@@ -890,9 +890,13 @@ local function set_editor(dl, abbr, s, W, res)
     s.gear = s.gear or {};
     local from, tlv = tiers.from_level(s, st.tier);
     local multi = tiers.count(s) > 1;
+    -- totals: with what's worn under it (Idle under Engaged, Idle + Engaged under a weapon skill...)
+    local tl = multi and math.max(tlv, 1) or (view_level(abbr) > 0 and view_level(abbr) or 99);
+    local tot, under = rules.with_base(store.sets(abbr), s, tl);
+    local ttl = multi and ('Totals at Lv' .. tl) or 'Totals';
+    if #under > 0 then ttl = ttl .. ' with ' .. table.concat(under, ' + '); end
     gear_block(dl, W, st.tier, { job = jobs.id(abbr), ghost = multi and tiers.inherited(s, st.tier) or nil,
-        totals = multi and tiers.effective(s, math.max(tlv, 1)) or nil,
-        totals_title = multi and ('Totals at Lv' .. math.max(tlv, 1)) or nil }, bad);
+        totals = (multi or #under > 0) and tot or nil, totals_title = ttl }, bad);
 
     -- when
     theme.section('Use this set when', W);

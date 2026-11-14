@@ -41,6 +41,10 @@ your Ashita `addons` folder (so you have `addons/NeoSwap/neoswap.lua`), then loa
   - **Totals**: with no slot picked, the set's bonuses added up from every piece's description, pet bonuses
     (Avatar:, Wyvern:, Automaton:) apart, and the bonuses that only count sometimes (Latent effect, Set:, days,
     weather...) listed under *Only sometimes*.
+    The totals (and the summary on the set's card) count what's worn under the set too: your Idle set's pieces
+    under an Engaged, Resting or Chocobo set or a spell, Idle + Engaged under a weapon skill, ability or ranged
+    attack - the title says which (*Totals with Idle + Engaged*). Only sets with no conditions (or just a matching
+    *Status is*) count as underneath.
   - **Use this set when**:
     - *Use it for*: Idle, Engaged, Resting, Spell precast, Spell midcast, Job ability, Weapon skill, Ranged preshot,
       Ranged midshot, Item use, Pet action, Manual only.

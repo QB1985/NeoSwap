@@ -252,6 +252,67 @@ function rules.layer(hits, level)
     return out;
 end
 
+-- The sets worn under a set when it goes on (for its totals): an Engaged set sits on your Idle set, a weapon skill
+-- set on Idle + Engaged... Only sets with no conditions count (or just "Status is ..." matching), in the order they'd
+-- go on. Returns { set, ... }, lowest first, and the names of the kinds used ("Idle", "Engaged").
+local UNDER = {
+    engaged = { 'idle' }, resting = { 'idle' }, chocobo = { 'idle' },
+    ws = { 'idle', 'engaged' }, ja = { 'idle', 'engaged' }, preshot = { 'idle', 'engaged' }, midshot = { 'idle', 'engaged' },
+    precast = { 'idle' }, midcast = { 'idle' }, item = { 'idle' }, pet = { 'idle' }, manual = { 'idle' },
+};
+local STATUS_OF = { engaged = 'Engaged', ws = 'Engaged', ja = 'Engaged', preshot = 'Engaged', midshot = 'Engaged',
+    resting = 'Resting', chocobo = 'Chocobo' };
+function rules.base_for(sets, set)
+    local kind = set and set.when and set.when.kind;
+    local under = UNDER[kind or ''];
+    if under == nil then return {}, {}; end
+    local status = STATUS_OF[kind] or 'Idle';
+    local out, names = {}, {};
+    for _, k in ipairs(under) do
+        local hits = {};
+        for i, s in ipairs(sets or {}) do
+            local w = s.when or {};
+            if s ~= set and w.kind == k and s.off ~= true then
+                local ok = true;
+                for _, c in ipairs(w.cond or {}) do
+                    if c.t == 'status' then
+                        local m = tostring(c.v or 'Idle'):lower() == status:lower();
+                        if c.neg then m = not m; end
+                        if not m then ok = false; break; end
+                    else ok = false; break; end
+                end
+                if ok then hits[#hits + 1] = { set = s, prio = tonumber(s.prio) or 0, i = i }; end
+            end
+        end
+        table.sort(hits, function(a, b) if a.prio ~= b.prio then return a.prio < b.prio; end return a.i < b.i; end);
+        for _, h in ipairs(hits) do out[#out + 1] = h.set; end
+        if #hits > 0 then
+            for _, kk in ipairs(rules.KINDS) do if kk.key == k then names[#names + 1] = kk.label; end end
+        end
+    end
+    return out, names;
+end
+
+-- A set's gear with what's worn under it (rules.base_for) filled in: { [slot] = entry }, the kind names, and
+-- { [slot] = true } for the slots that come from underneath
+function rules.with_base(sets, set, level)
+    local base, names = rules.base_for(sets, set);
+    local out, from_base = {}, {};
+    for _, b in ipairs(base) do
+        local g = tiers.effective(b, level);
+        for sl = 0, 15 do
+            local e = g[sl];
+            if e ~= nil and (e.id or e.remove) then out[sl] = e; from_base[sl] = true; end
+        end
+    end
+    local own = tiers.effective(set, level);
+    for sl = 0, 15 do
+        local e = own[sl];
+        if e ~= nil and (e.id or e.remove) then out[sl] = e; from_base[sl] = nil; end
+    end
+    return out, names, from_base;
+end
+
 -- The triggers for a moment
 function rules.kinds_for(event, status)
     if event == 'default' then
