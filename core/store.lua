@@ -76,6 +76,8 @@ function store.load(name, id)
     store.owner = { name = name, id = id };
     store.path = string.format('%s%s_%u\\sets.lua', store.base_dir(), name, id);
     store.data = new_data();
+    store.data.sync = {};
+    require('core.jobs').sync = store.data.sync;
     if not ashita.fs.exists(store.path) then return false; end
     local f, err = loadfile(store.path);
     if not f then
@@ -89,6 +91,8 @@ function store.load(name, id)
         store.data = d;
         store.data.jobs = store.data.jobs or {};
         store.data.modes = store.data.modes or {};
+        store.data.sync = store.data.sync or {};
+        require('core.jobs').sync = store.data.sync;
         store.data.lockstyle = store.data.lockstyle or {};
         store.data.next_id = tonumber(store.data.next_id) or 1;
         for _, j in pairs(store.data.jobs) do
@@ -286,6 +290,16 @@ function store.mode(name) return store.data ~= nil and store.data.modes[tostring
 function store.set_mode(name, on)
     if store.data == nil then return; end
     store.data.modes[tostring(name or ''):lower()] = on and true or false;
+    store.touch();
+end
+
+
+-- Manual level sync for a job (nil / 0: off)
+function store.set_sync(abbr, level)
+    store.data.sync = store.data.sync or {};
+    level = tonumber(level);
+    store.data.sync[abbr] = (level and level >= 1) and math.min(99, math.floor(level)) or nil;
+    require('core.jobs').sync = store.data.sync;
     store.touch();
 end
 

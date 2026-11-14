@@ -1,6 +1,6 @@
 addon.name    = 'NeoSwap';
 addon.author  = 'KS1985';
-addon.version = '0.9.3';
+addon.version = '0.9.4';
 addon.desc    = 'Gear swapping without writing a profile: build your sets in an equipment menu, say when each is worn (idle, engaged, resting, weapon skills, abilities, spells, ranged, items, pet moves, with conditions), see their bonuses and clashes. Lockstyle and macro book per job. Restyled after YunaUI.';
 addon.link    = 'https://github.com/QB1985/NeoSwap';
 
@@ -160,6 +160,18 @@ ashita.events.register('command', 'neoswap_command_cb', function(e)
         else on = not store.mode(name); end
         store.set_mode(name, on);
         say('Mode ' .. name .. ': ' .. (on and 'on' or 'off') .. '.');
+    elseif sub == 'sync' then
+        -- /nswap sync <level> | off   (your job now), or /nswap sync <JOB> <level> | off
+        local a1, a2 = (args[3] or ''):upper(), (args[4] or ''):lower();
+        local abbr, v = cur_abbr(), (args[3] or ''):lower();
+        if jobs.id(a1) then abbr, v = a1, a2; end
+        if abbr == nil then err('No job.'); return; end
+        if v == '' then
+            local sv = jobs.synced(jobs.id(abbr));
+            say(abbr .. (sv and (' is synced to level ' .. sv .. '.') or ' is not synced.') .. '  /nswap sync <level> | off');
+        elseif v == 'off' or v == '0' then store.set_sync(abbr, nil); say(abbr .. ': level sync off.');
+        elseif tonumber(v) then store.set_sync(abbr, tonumber(v)); say(abbr .. ': sets worn as at level ' .. jobs.synced(jobs.id(abbr)) .. '.');
+        else err('Use: /nswap sync <level> | off'); end
     elseif sub == 'cycle' then
         -- /nswap cycle Normal PDT MDT  (or with commas)
         local text = rest:find(',', 1, true) and rest or rest:gsub('%s+', ',');
@@ -196,7 +208,7 @@ ashita.events.register('command', 'neoswap_command_cb', function(e)
         if n > 1 then n = n / 100; end
         config.set('opacity', math.max(0.2, math.min(1, n)));
     else
-        say('Commands: /nswap, /nswap on|off, /nswap set <name>, /nswap run <command>, /nswap stop, /nswap entry <name> [on|off|toggle], /nswap unlock, /nswap mode <name> [on|off|toggle], /nswap cycle <modes...>, /nswap modes, /nswap disable|enable <slot|all>, /nswap lockstyle, /nswap macros, /nswap job <JOB>, /nswap debug, /nswap save, /nswap config, /nswap min, /nswap opacity <20-100>');
+        say('Commands: /nswap, /nswap on|off, /nswap set <name>, /nswap run <command>, /nswap stop, /nswap entry <name> [on|off|toggle], /nswap unlock, /nswap mode <name> [on|off|toggle], /nswap cycle <modes...>, /nswap sync <level>|off, /nswap modes, /nswap disable|enable <slot|all>, /nswap lockstyle, /nswap macros, /nswap job <JOB>, /nswap debug, /nswap save, /nswap config, /nswap min, /nswap opacity <20-100>');
     end
 end);
 

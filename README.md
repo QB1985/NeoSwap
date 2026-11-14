@@ -145,6 +145,10 @@ or a command. Its commands' slash words work from any job. *Delete entry* (click
 
 ## Levels in a set
 
+**Level sync** (in a job's options, under Lockstyle, or `/nswap sync <level>`): wears that job's sets as if you were
+that level - their level tiers, level conditions and the picker's level filter all follow it - until you turn it off.
+It never goes above your real level. The job's header and the bar at the bottom show *synced to ...* while it's on.
+
 A set can hold gear for several levels. The buttons above the set's name are its levels: each shows the highest
 level among its pieces (that's the level it's worn from), and **+** adds a new one. At your level, every level of
 the set at or below it is put on, lowest first, so lower gear carries forward until a higher level replaces that
@@ -188,6 +192,7 @@ order (lower on top).
 | `/nswap run <command>` | run one of the job's own commands (or type its /word) |
 | `/nswap stop` | stop the running command |
 | `/nswap mode <name> [on\|off\|toggle]` | switch a mode (toggle: the other way; also with no word) |
+| `/nswap sync <level>\|off` | level sync: wear your job's sets as at that level (`/nswap sync WAR 30` for another job) |
 | `/nswap cycle <mode> <mode> ...` | the next mode in the row goes on, the others off (Normal PDT MDT) |
 | `/nswap modes` | list your modes |
 | `/nswap disable <slot\|all>` / `enable` | NeoSwap leaves a slot alone / stops |

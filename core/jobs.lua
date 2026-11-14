@@ -17,13 +17,33 @@ function jobs.sub()
     local ok, v = pcall(function() return player():GetSubJob(); end);
     return ok and tonumber(v) or 0;
 end
-function jobs.level(id)
+-- Manual level sync: { [abbr] = level } (store.data.sync, set by store.load). A synced job's sets are worn as at that
+-- level (its tiers, level conditions, the picker's level filter...), whatever its real level is.
+jobs.sync = {};
+function jobs.synced(id)
+    local a = jobs.ABBR[tonumber(id) or 0];
+    local v = a and tonumber(jobs.sync[a]);
+    return (v and v >= 1) and math.floor(v) or nil;
+end
+function jobs.real_level(id)
     local ok, v = pcall(function() return player():GetJobLevel(id); end);
     return ok and (tonumber(v) or 0) or 0;
 end
-function jobs.main_level()
+function jobs.real_main_level()
     local ok, v = pcall(function() return player():GetMainJobLevel(); end);
     return ok and (tonumber(v) or 0) or 0;
+end
+function jobs.level(id)
+    local real = jobs.real_level(id);
+    local sv = jobs.synced(id);
+    if sv and real > 0 then return math.min(sv, real); end
+    return real;
+end
+function jobs.main_level()
+    local real = jobs.real_main_level();
+    local sv = jobs.synced(jobs.main());
+    if sv and real > 0 then return math.min(sv, real); end
+    return real;
 end
 function jobs.sub_level()
     local ok, v = pcall(function() return player():GetSubJobLevel(); end);

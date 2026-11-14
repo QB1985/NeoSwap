@@ -274,6 +274,8 @@ local function head_items(abbr)
     if j.macro and j.macro.on then t[#t + 1] = { key = 'book' }; t[#t + 1] = { key = 'page' }; end
     t[#t + 1] = { key = 'lockstyle' };
     if j.lockstyle and j.lockstyle.mode == 'job' then t[#t + 1] = { key = 'edit' }; end
+    t[#t + 1] = { key = 'sync' };
+    if jobs.synced(jobs.id(abbr)) then t[#t + 1] = { key = 'synclv' }; end
     for _, m in ipairs(modes_used(abbr)) do t[#t + 1] = { key = 'mode', mode = m }; end
     return t;
 end
@@ -318,8 +320,11 @@ local function job_header(dl, abbr, W)
     imgui.SetWindowFontScale(1.15);
     dl:AddText({ tx, y0 + 1 }, u32(C.text), jobs.NAME[job] or abbr);
     imgui.SetWindowFontScale(1);
-    local lv = jobs.level(job);
-    dl:AddText({ tx, y0 + lh + 6 }, u32(C.muted), lv > 0 and ('Level ' .. lv .. (job == jobs.main() and '  -  your job now' or '')) or 'Not unlocked');
+    local lv = jobs.real_level(job);
+    local sv = jobs.synced(job);
+    local lt = lv > 0 and ('Level ' .. lv .. (job == jobs.main() and '  -  your job now' or '')) or 'Not unlocked';
+    dl:AddText({ tx, y0 + lh + 6 }, u32(C.muted), lt);
+    if sv and lv > 0 then dl:AddText({ tx + tw(lt) + 10, y0 + lh + 6 }, u32(C.gold or NEON2), 'synced to ' .. math.min(sv, lv)); end
     imgui.Dummy({ W, math.max(E, lh * 2 + 8) });
 
     local j = store.job(abbr, true);
@@ -405,6 +410,32 @@ local function job_header(dl, abbr, W)
         if c then st.style = not st.style; st.slot = nil; st.import = nil; end
     end
     next_row(y, rh);
+
+    -- level sync: wear this job's sets as at a lower level
+    do
+        local sv = jobs.synced(job);
+        y = row_label('Level sync', 'Wear ' .. abbr .. '\'s sets as if you were this level: their level tiers, level conditions and the picker\'s level filter follow it. For level-synced parties, capped areas, or just to try a lower set.');
+        imgui.SetCursorScreenPos({ lx + LW, y + (fh - 26) / 2 });
+        if theme.switch('##ns_sync_on', sv ~= nil) then
+            store.set_sync(abbr, sv == nil and math.max(1, math.min(99, (jobs.real_level(job) > 1) and (jobs.real_level(job) - 1) or 50)) or nil);
+            sv = jobs.synced(job);
+        end
+        do local a1, b1, a2, b2 = item_rect(); head_ring(dl, 'sync', a1, b1, a2, b2, (b2 - b1) / 2); end
+        if imgui.IsItemHovered() then tip(sv and ('On: ' .. abbr .. '\'s sets are worn as at level ' .. sv) or 'Off: your real level'); end
+        local rh2 = math.max(fh, 26);
+        if sv then
+            local dw, dh = theme.digits_size(99);
+            local x = lx + LW + 56;
+            dl:AddText({ x, y + (fh - lh) / 2 }, u32(C.muted), 'Level');
+            x = x + tw('Level') + 8;
+            imgui.SetCursorScreenPos({ x, y + (fh - dh) / 2 });
+            local v, vc = theme.digits('ns_sync_lv' .. abbr, sv, 1, 99);
+            if vc then store.set_sync(abbr, v); end
+            head_ring(dl, 'synclv', x, y + (fh - dh) / 2, x + dw, y + (fh - dh) / 2 + dh, 6);
+            rh2 = math.max(rh2, dh);
+        end
+        next_row(y, rh2);
+    end
 
     -- modes
     local ml = modes_used(abbr);
@@ -1236,6 +1267,8 @@ local function status_line(dl, W)
         local what = ({ default = 'Now', precast = 'Precast', midcast = 'Midcast', ws = 'Weapon skill', ja = 'Ability',
                         preshot = 'Preshot', midshot = 'Midshot', item = 'Item', manual = 'Equipped' })[l.event] or l.event;
         local t = string.format('%s%s: %s   (%ds ago)', what, l.action and (' ' .. l.action) or '', table.concat(l.sets or {}, ' + '), math.floor(ago));
+        local sv = jobs.synced(jobs.main());
+        if sv then t = '[Lv' .. math.min(sv, jobs.real_main_level()) .. ' sync]  ' .. t; end
         dl:AddCircleFilled({ x + 4, y + lh / 2 }, 3, u32(C.acc), 12);
         dl:AddText({ x + 12, y }, u32({ C.muted[1], C.muted[2], C.muted[3], 0.9 }), theme.fit(t, avail));
     end
@@ -1315,7 +1348,10 @@ function ui.on_action(a)
             if nav.hrow >= #items then nav.zone = 'list'; nav.row = 0; else nav.hrow = nav.hrow + 1; end
         elseif a == 'left' or a == 'right' then
             local d = (a == 'right') and 1 or -1;
-            if it.key == 'book' then j.macro.book = math.max(1, math.min(40, (tonumber(j.macro.book) or 1) + d)); store.touch();
+            if it.key == 'synclv' then
+                local cur = jobs.synced(jobs.id(st.job)) or 50;
+                store.set_sync(st.job, math.max(1, math.min(99, cur + d)));
+            elseif it.key == 'book' then j.macro.book = math.max(1, math.min(40, (tonumber(j.macro.book) or 1) + d)); store.touch();
             elseif it.key == 'page' then j.macro.page = math.max(1, math.min(10, (tonumber(j.macro.page) or 1) + d)); store.touch();
             elseif it.key == 'lockstyle' then
                 local k = 2;
@@ -1326,7 +1362,11 @@ function ui.on_action(a)
             elseif it.key == 'mode' then store.set_mode(it.mode, not store.mode(it.mode));
             elseif it.key == 'macro' then j.macro.on = not j.macro.on; store.touch(); end
         elseif a == 'ok' then
-            if it.key == 'macro' then j.macro.on = not j.macro.on; store.touch();
+            if it.key == 'sync' then
+                local jid = jobs.id(st.job);
+                if jobs.synced(jid) then store.set_sync(st.job, nil);
+                else store.set_sync(st.job, math.max(1, (jobs.real_level(jid) > 1) and (jobs.real_level(jid) - 1) or 50)); end
+            elseif it.key == 'macro' then j.macro.on = not j.macro.on; store.touch();
             elseif it.key == 'mode' then store.set_mode(it.mode, not store.mode(it.mode));
             elseif it.key == 'lockstyle' and j.lockstyle.mode ~= 'job' then
                 j.lockstyle.mode = (j.lockstyle.mode == 'off') and 'global' or (j.lockstyle.mode == 'global' and 'job' or 'off'); store.touch();
