@@ -109,6 +109,9 @@ run the command (click again while it runs to stop it), drag it to move it. *Nam
 a short label of your own); *Icon* shows an icon instead - travel and status items, a job emblem, or any item. A job's
 command buttons show while you're that job; a custom entry's show on every job. *Lock command buttons* in the settings
 (or `/nswap buttons lock`) stops them being dragged by accident; `/nswap buttons hide` hides them all.
+Drag a button near another and it **snaps** beside it (or above / below it), lined up by the edge or the centre with a
+small gap: a dashed outline shows where it'll go and the other button's edge lights up; let go to put it there.
+*Snap command buttons* in the settings turns that off.
 
 ## Import from LuAshitacast
 

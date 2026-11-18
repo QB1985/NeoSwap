@@ -56,6 +56,7 @@ local function general(W)
     theme.row_switch('##ns_follow', 'Follow my job', 'follow_job', 'When you change job, the window shows that job\'s sets.');
     theme.row_switch('##ns_btns', 'Show command buttons', 'buttons_shown', 'The on-screen buttons of your commands (turn one on in its command\'s page).');
     theme.row_switch('##ns_btnl', 'Lock command buttons', 'buttons_locked', 'On: the buttons can\'t be dragged by accident.');
+    theme.row_switch('##ns_btns2', 'Snap command buttons', 'buttons_snap', 'On: drag a button near another and it lines up beside it, with a small gap (an outline shows where).');
 
     theme.section('Swapping', W);
     theme.row_switch('##ns_eng', 'Swap gear', 'engine_on', 'Off: NeoSwap only edits sets, and your gear is left alone.');

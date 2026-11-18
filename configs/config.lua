@@ -26,6 +26,7 @@ local default_settings = T{
     -- on-screen command buttons (ui/buttons.lua)
     buttons_shown   = true;       -- show them
     buttons_locked  = false;      -- true: they can't be dragged
+    buttons_snap    = true;       -- dragged near another, a button snaps beside it (a small gap between)
 
     -- the engine
     engine_on       = true;       -- swap gear (off: NeoSwap only edits sets)
