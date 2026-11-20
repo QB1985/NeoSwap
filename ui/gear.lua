@@ -280,7 +280,7 @@ function gear.picker(dl, W, H, slot, cur, opts)
         imgui.Dummy({ 10, 6 });
         local msg = scope == 'all' and #text < 2 and 'Type at least 2 letters to search every item.'
             or (scope == 'owned' and 'Nothing you have fits here' .. (opts.job and (' for ' .. (jobs.ABBR[opts.job] or '')) or '') .. '. Try "Every item".' or 'Nothing found.');
-        imgui.TextColored(C.muted, msg);
+        theme.text_wrap(C.muted, msg);
     end
     local cur_sig = cur and cur.id and augments.want_text(cur) or '';
     gear.picker_count = #rows;
@@ -317,10 +317,10 @@ function gear.picker(dl, W, H, slot, cur, opts)
         local wfit = theme.fit(where, ww + 1);
         ldl:AddText({ x + rw - rwid - 16 - tw(wfit), ty }, u32({ C.muted[1], C.muted[2], C.muted[3], r.owned and 0.75 or 0.5 }), wfit);
         local nmax = rw - rwid - tw(wfit) - 60;
-        ldl:AddText({ x + 34, ty }, u32(r.owned and (on and { 1, 1, 1, 1 } or C.text) or { C.text[1], C.text[2], C.text[3], 0.55 }), theme.fit(r.name, nmax));
+        theme.fit_text(ldl, x + 34, ty, u32(r.owned and (on and { 1, 1, 1, 1 } or C.text) or { C.text[1], C.text[2], C.text[3], 0.55 }), r.name, nmax);
         if has_aug then
             imgui.SetWindowFontScale(0.88);
-            ldl:AddText({ x + 34, ty + lh - 1 }, u32({ C.gold[1], C.gold[2], C.gold[3], 0.9 }), theme.fit(r.sig, rw - 44));
+            theme.fit_text(ldl, x + 34, ty + lh - 1, u32({ C.gold[1], C.gold[2], C.gold[3], 0.9 }), r.sig, rw - 44);
             imgui.SetWindowFontScale(1);
         end
         local pad_tip = opts.nav and opts.nav.prow == i and not hov and nav.mouse_quiet();
@@ -374,8 +374,7 @@ function gear.totals(dl, W, H, set_gear, title)
     for s = 0, 15 do if set_gear and set_gear[s] and set_gear[s].id then n = n + 1; end end
     if n == 0 then
         imgui.Dummy({ 4, 4 });
-        imgui.TextColored(C.muted, 'Pick a slot on the left and choose a piece.');
-        imgui.TextColored(C.muted, 'The bonuses of every piece are added up here.');
+        theme.text_wrap(C.muted, 'Pick a slot on the left and choose a piece. The bonuses of every piece are added up here.');
     else
         -- the bonuses in columns
         local cols = W > 380 and 3 or 2;
@@ -389,7 +388,7 @@ function gear.totals(dl, W, H, set_gear, title)
             local label = e.name;
             local v = (e.value > 0 and '+' or '') .. tostring(e.value) .. (e.pct and '%' or '');
             if label == 'DEF' then v = tostring(e.value); end
-            ldl:AddText({ x, y }, u32(e.pet and C.acc or C.muted), theme.fit(label, cw - tw(v) - 14));
+            theme.fit_text(ldl, x, y, u32(e.pet and C.acc or C.muted), label, cw - tw(v) - 14);
             ldl:AddText({ x + cw - 10 - tw(v), y }, u32(e.value < 0 and C.warn or C.text), v);
             k = k + 1;
         end

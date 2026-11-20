@@ -186,7 +186,7 @@ local function rail(dl, H)
             if tex.job(rdl, emblem, x + 10, y + 3, 20, dim and 0.35 or 1) then tx = x + 36; else tx = x + 14; end
         end
         local room = x + RAIL_W - 18 - tx - ((count and count ~= '') and (tw(count) + 6) or 0);
-        rdl:AddText({ tx, y + (h - lh) / 2 }, u32(dim and { 0.45, 0.44, 0.52, 1 } or ((sel or hov) and { 1, 1, 1, 1 } or C.text)), theme.fit(text, room));
+        theme.fit_text(rdl, tx, y + (h - lh) / 2, u32(dim and { 0.45, 0.44, 0.52, 1 } or ((sel or hov) and { 1, 1, 1, 1 } or C.text)), text, room);
         if dot then rdl:AddCircleFilled({ tx + math.min(tw(text), room) + 7, y + h / 2 }, 3, u32(type(dot) == 'table' and dot or C.gold), 12); end
         if count and count ~= '' then
             local cw = tw(count);
@@ -582,7 +582,7 @@ local function set_card(dl, abbr, s, W, res, worn_now)
         rx = rx - w - 6;
     end
     local name = (s.name and s.name ~= '') and s.name or '(no name)';
-    dl:AddText({ x + 12, y + 8 }, u32(off and C.muted or { 1, 1, 1, 1 }), theme.fit(name, rx - x - 18));
+    theme.fit_text(dl, x + 12, y + 8, u32(off and C.muted or { 1, 1, 1, 1 }), name, rx - x - 18);
     -- the trigger and conditions
     local w = s.when or {};
     local trig = rules.trigger_text(w);
@@ -590,7 +590,7 @@ local function set_card(dl, abbr, s, W, res, worn_now)
     for _, cnd in ipairs(w.cond or {}) do conds[#conds + 1] = rules.cond_text(cnd); end
     local line = trig .. (#conds > 0 and ('  -  ' .. table.concat(conds, ', ')) or '') .. ((tonumber(s.prio) or 0) > 0 and ('  -  priority ' .. s.prio) or '')
         .. (tiers.count(s) > 1 and ('  -  ' .. tiers.count(s) .. ' levels') or '');
-    dl:AddText({ x + 12, y + 10 + lh }, u32({ C.acc[1], C.acc[2], C.acc[3], off and 0.5 or 0.9 }), theme.fit(line, W - 24));
+    theme.fit_text(dl, x + 12, y + 10 + lh, u32({ C.acc[1], C.acc[2], C.acc[3], off and 0.5 or 0.9 }), line, W - 24);
     -- the bonuses
     local jlv = view_level(abbr);
     local eff = tiers.effective(s, jlv > 0 and jlv or 99);
@@ -1013,14 +1013,14 @@ function ui.import_page(dl, abbr, W)
 
     local r = im.res;
     if r == nil then return; end
-    for _, e in ipairs(r.errors or {}) do imgui.TextColored(C.bad, theme.safe(e)); end
+    for _, e in ipairs(r.errors or {}) do theme.text_wrap(C.bad, e); end
     if r.levels and #r.levels > 1 then
         local hx, hy = imgui.GetCursorScreenPos();
         local hh = theme.wrapped(dl, hx, hy, 'Read at ' .. #r.levels .. ' levels (' .. table.concat(r.levels, ', ') .. '): the gear each set changes at a level becomes one of its levels.', W, u32(C.acc));
         imgui.Dummy({ W, hh + 2 });
     end
     if #(r.notes or {}) > 0 then
-        imgui.TextColored(C.muted, #r.notes .. ' part' .. (#r.notes == 1 and '' or 's') .. ' of the profile stopped with an error (hover to see).');
+        theme.text_wrap(C.muted, #r.notes .. ' part' .. (#r.notes == 1 and '' or 's') .. ' of the profile stopped with an error (hover to see).');
         if imgui.IsItemHovered() then tip(table.concat(r.notes, '\n')); end
     end
     if #(r.sets or {}) == 0 then
@@ -1044,7 +1044,7 @@ function ui.import_page(dl, abbr, W)
         for _ in pairs(r.lockstyle) do n = n + 1; end
         if tick('##ns_im_ls', string.format('Lockstyle: its Lockstyle set (%d pieces) as %s\'s own', n, f.job), r.use_lockstyle) then r.use_lockstyle = not r.use_lockstyle; end
     end
-    if r.lockstyleset then imgui.TextColored(C.muted, 'It also uses the game\'s lockstyle set ' .. r.lockstyleset .. ' (not brought in).'); end
+    if r.lockstyleset then theme.text_wrap(C.muted, 'It also uses the game\'s lockstyle set ' .. r.lockstyleset .. ' (not brought in).'); end
     local nsel = 0;
     for _, s in ipairs(r.sets) do if s.pick then nsel = nsel + 1; end end
     imgui.Spacing();
@@ -1093,11 +1093,11 @@ function ui.import_page(dl, abbr, W)
         local miss = #(s.missing or {});
         if miss > 0 then right = right .. ', ' .. miss .. ' not found'; end
         dl:AddText({ x + W - tw(right) - 10, y + 6 }, u32(miss > 0 and C.warn or C.muted), right);
-        dl:AddText({ x + 18 + bs, y + 6 }, u32(has and C.text or C.muted), theme.fit(s.name, W - tw(right) - 50 - bs));
+        theme.fit_text(dl, x + 18 + bs, y + 6, u32(has and C.text or C.muted), s.name, W - tw(right) - 50 - bs);
         local conds = {};
         for _, cnd in ipairs(s.when.cond or {}) do conds[#conds + 1] = rules.cond_text(cnd); end
         local line = rules.trigger_text(s.when) .. (#conds > 0 and ('  -  ' .. table.concat(conds, ', ')) or '') .. (s.from == 'set' and '  (a named set the profile didn\'t wear)' or '');
-        dl:AddText({ x + 18 + bs, y + 8 + lh }, u32({ C.acc[1], C.acc[2], C.acc[3], 0.85 }), theme.fit(line, W - 40 - bs));
+        theme.fit_text(dl, x + 18 + bs, y + 8 + lh, u32({ C.acc[1], C.acc[2], C.acc[3], 0.85 }), line, W - 40 - bs);
         if hov then
             local t = {};
             for sl = 0, 15 do
@@ -1167,7 +1167,7 @@ local function editor(dl, abbr, W, H)
             end
         end
     end);
-    if not ok then imgui.TextColored(C.bad, 'Editor error: ' .. tostring(err)); end
+    if not ok then theme.text_wrap(C.bad, 'Editor error: ' .. tostring(err)); end
     imgui.PopStyleVar(1);
     imgui.Unindent(6);
     theme.end_list(pv);
@@ -1252,7 +1252,7 @@ local function status_line(dl, W)
     local avail = W - rw - 24;
     local msg, kind = status.get();
     if not msg and pad.listen == nil and pad.enabled() and nav.shown() then
-        dl:AddText({ x, y }, u32({ C.muted[1], C.muted[2], C.muted[3], 0.75 }), theme.fit(ui.pad_hint(), avail));
+        theme.fit_text(dl, x, y, u32({ C.muted[1], C.muted[2], C.muted[3], 0.75 }), ui.pad_hint(), avail);
         imgui.SetCursorScreenPos({ x, y });
         imgui.Dummy({ W, lh });
         return;
@@ -1260,7 +1260,7 @@ local function status_line(dl, W)
     if msg then
         local col = STATUS_COL[kind] or C.text;
         dl:AddCircleFilled({ x + 4, y + lh / 2 }, 3, u32(col), 12);
-        dl:AddText({ x + 12, y }, u32(col), theme.fit(msg, avail));
+        theme.fit_text(dl, x + 12, y, u32(col), msg, avail);
     elseif engine.last then
         local l = engine.last;
         local ago = os.clock() - l.at;
@@ -1270,7 +1270,7 @@ local function status_line(dl, W)
         local sv = jobs.synced(jobs.main());
         if sv then t = '[Lv' .. math.min(sv, jobs.real_main_level()) .. ' sync]  ' .. t; end
         dl:AddCircleFilled({ x + 4, y + lh / 2 }, 3, u32(C.acc), 12);
-        dl:AddText({ x + 12, y }, u32({ C.muted[1], C.muted[2], C.muted[3], 0.9 }), theme.fit(t, avail));
+        theme.fit_text(dl, x + 12, y, u32({ C.muted[1], C.muted[2], C.muted[3], 0.9 }), t, avail);
     end
     imgui.SetCursorScreenPos({ x, y });
     imgui.Dummy({ W, lh });

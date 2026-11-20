@@ -31,6 +31,10 @@ your Ashita `addons` folder (so you have `addons/NeoSwap/neoswap.lua`), then loa
     that fits it and that the job can wear (where it is, its level). *Every item* searches every piece in the game,
     to plan a set before you have it. *Take off* makes the set leave the slot empty; *Leave alone* (or right-clicking
     the slot) takes the slot out of the set, so whatever is on stays on.
+  - **What to put in it**: hover a choice in *Use it for* (or the hint beside it) for the bonuses that set is good
+    for - defense for Idle, haste and accuracy for Engaged, Fast Cast for precast... Hover a magic skill, a spell,
+    a weapon skill (its stats: STR, DEX...) or an ability for more; a weapon skill set lists the stats its weapon
+    skills use.
   - **Pieces that cover a slot**: a piece whose description says *Cannot equip headgear* (a cloak) or the like
     covers that slot. The slot is hatched in the grid, whatever the set has there stays off while the cloak is on
     (no more flipping between the two), and it isn't counted in the stat summary.

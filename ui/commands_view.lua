@@ -120,7 +120,7 @@ function view.list(dl, abbr, W, H, sel, on_pick, nav_row)
             theme.chip(ldl, rx - w, y + 7, t, C.good);
             rx = rx - w - 6;
         end
-        ldl:AddText({ x + 12, y + 8 }, u32({ 1, 1, 1, 1 }), theme.fit(c.name or '(no name)', rx - x - 18));
+        theme.fit_text(ldl, x + 12, y + 8, u32({ 1, 1, 1, 1 }), c.name or '(no name)', rx - x - 18);
         local n = #(c.steps or {});
         local line = n .. ' step' .. (n == 1 and '' or 's');
         if is_run then line = 'Step ' .. ri .. ' of ' .. n; end
@@ -238,7 +238,7 @@ local function step_row(abbr, cmd, i, s, W, is_cur)
             end
         end
         if s.v and s.v:find('{', 1, true) then
-            imgui.TextColored({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, 'Now: ' .. commands.fill(s.v));
+            theme.text_wrap({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, 'Now: ' .. commands.fill(s.v));
         end
     elseif d.arg == 'secs' then
         local v, ch = theme.digits(id .. '_n', tonumber(s.n) or d.def or 1, 0, 99);
@@ -255,7 +255,7 @@ local function step_row(abbr, cmd, i, s, W, is_cur)
             local sp = theme.pick('##' .. id .. '_set', opts, s.v or opts[1][1], math.min(220, avail));
             if s.v == nil then s.v = opts[1][1]; changed = true; end
             if sp then s.v = sp; changed = true; end
-            if store.find_by_name(abbr, s.v or '') == nil then imgui.TextColored(C.warn, 'No ' .. abbr .. ' set has this name: the step will be skipped.'); end
+            if store.find_by_name(abbr, s.v or '') == nil then theme.text_wrap(C.warn, 'No ' .. abbr .. ' set has this name: the step will be skipped.'); end
         end
     elseif d.arg == 'cycle' then
         local b = when.buf(id .. '_cy', s.v or '');
@@ -266,7 +266,7 @@ local function step_row(abbr, cmd, i, s, W, is_cur)
         if #list > 0 then
             local parts = {};
             for _, m in ipairs(list) do parts[#parts + 1] = store.mode(m) and ('[' .. m .. ']') or m; end
-            imgui.TextColored({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, 'Now: ' .. table.concat(parts, '  >  ') .. '   (the one in [ ] is on)');
+            theme.text_wrap({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, 'Now: ' .. table.concat(parts, '  >  ') .. '   (the one in [ ] is on)');
         end
     elseif d.arg == 'mode' or d.arg == 'entry' then
         local ww = math.min(200, avail - 170);
@@ -278,7 +278,7 @@ local function step_row(abbr, cmd, i, s, W, is_cur)
         else
             local opts = {};
             for _, e in ipairs(store.entries()) do opts[#opts + 1] = { e.name, e.name }; end
-            if #opts == 0 then imgui.TextColored(C.warn, 'No custom entries yet (+ New entry, under the jobs).');
+            if #opts == 0 then theme.text_wrap(C.warn, 'No custom entries yet (+ New entry, under the jobs).');
             else
                 if s.v and store.entry_by_name(s.v) == nil then table.insert(opts, 1, { s.v, s.v .. ' (missing)' }); end
                 if s.v == nil then s.v = opts[1][1]; changed = true; end
@@ -387,7 +387,7 @@ function view.editor(dl, abbr, cmd, W)
     for _, o in ipairs(commands.list(abbr)) do
         if o ~= cmd and o.alias and o.alias ~= '' and o.alias:lower() == (cmd.alias or ''):lower() then alias_dup = true; end
     end
-    if alias_dup then imgui.TextColored(C.bad, 'Another ' .. abbr .. ' command uses ' .. cmd.alias .. '.'); end
+    if alias_dup then theme.text_wrap(C.bad, 'Another ' .. abbr .. ' command uses ' .. cmd.alias .. '.'); end
 
     -- the on-screen button
     buttons = buttons or require('ui.buttons');
@@ -443,7 +443,7 @@ function view.editor(dl, abbr, cmd, W)
             end
             if config.get('buttons_shown') == false then
                 imgui.SetCursorScreenPos({ lx, by0 + 4 });
-                imgui.TextColored(C.warn or C.muted, 'Buttons are hidden (/nswap buttons show)');
+                theme.text_wrap(C.warn or C.muted, 'Buttons are hidden (/nswap buttons show)');
             end
         end
         imgui.SetCursorScreenPos({ bx0, by0 + theme.pill_h() + 10 });

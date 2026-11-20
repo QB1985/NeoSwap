@@ -36,6 +36,17 @@ end
 local function popup_pop(pv) imgui.PopStyleColor(5); imgui.PopStyleVar(pv); end
 when.popup_style, when.popup_pop = popup_style, popup_pop;
 
+local SUGGEST = require('data.suggest');
+
+-- What a set of this kind is for, and what's worth stacking in it
+local function kind_text(k)
+    local t = k.hint or k.label;
+    local sg = SUGGEST.KIND[k.key];
+    if sg then t = t .. '\n\nGood bonuses: ' .. sg; end
+    return t;
+end
+local function kind_tip(k) tip(kind_text(k)); end
+
 local function label(text, x)
     imgui.SetCursorPosX(x or imgui.GetCursorPosX());
     imgui.AlignTextToFramePadding();
@@ -52,7 +63,7 @@ local function contains(list, n)
 end
 
 -- cands: function(text) -> { { name, group = 'Sword' / note } } (best first)
-local function name_list(id, list, W, cands, hint, free)
+local function name_list(id, list, W, cands, hint, free, info)
     local changed = false;
     local dl = imgui.GetWindowDrawList();
     local lh = imgui.GetTextLineHeight();
@@ -68,6 +79,7 @@ local function name_list(id, list, W, cands, hint, free)
         dl:AddRectFilled({ cx, cy }, { cx + w, cy + h }, u32({ NEON[1] * 0.30, NEON[2] * 0.30, NEON[3] * 0.30, 1 }), h / 2);
         dl:AddRect({ cx, cy }, { cx + w, cy + h }, u32({ NEON2[1], NEON2[2], NEON2[3], 0.55 }), h / 2, C.rall, 1);
         dl:AddText({ cx + 10, cy + (h - lh) / 2 }, u32({ 1, 1, 1, 1 }), t);
+        if info and imgui.IsMouseHoveringRect({ cx, cy }, { cx + w - 18, cy + h }) then local it = info(t); if it then tip(t .. '\n' .. it); end end
         local xx, xy = cx + w - 14, cy + h / 2;
         imgui.SetCursorScreenPos({ xx - 8, cy });
         if imgui.InvisibleButton('##' .. id .. '_x' .. i, { 16, h }) then remove = i; end
@@ -101,6 +113,7 @@ local function name_list(id, list, W, cands, hint, free)
                 dl:AddRectFilled({ x, y }, { x + rw, y + lh + 6 }, u32(hov and { 0.16, 0.15, 0.21, 1 } or { 0.075, 0.07, 0.10, 0.95 }), 4);
                 dl:AddText({ x + 10, y + 3 }, u32(hov and { 1, 1, 1, 1 } or C.text), f.name);
                 if f.group then dl:AddText({ x + rw - tw(f.group) - 10, y + 3 }, u32(C.muted), f.group); end
+                if hov and info then local it = info(f.name); if it then tip(f.name .. '\n' .. it); end end
                 if c then list[#list + 1] = f.name; b[1] = ''; changed = true; end
                 if f.name:lower() == text:lower() then any_exact = true; end
             end
@@ -241,8 +254,9 @@ function when.draw(s, abbr, W)
     label('Use it for', x0);
     imgui.SameLine(x0 + LW);
     local opts = {};
-    for _, k in ipairs(rules.KINDS) do opts[#opts + 1] = { k.key, k.label }; end
+    for _, k in ipairs(rules.KINDS) do opts[#opts + 1] = { k.key, k.label, kind_text(k) }; end
     local p = theme.pick('##wh_kind', opts, w.kind, 200);
+    if imgui.IsItemHovered() then kind_tip(rules.BY_KIND[w.kind] or rules.KINDS[1]); end
     if p and p ~= w.kind then
         w.kind = p;
         local k = rules.BY_KIND[p];
@@ -254,9 +268,9 @@ function when.draw(s, abbr, W)
     imgui.SameLine();
     imgui.AlignTextToFramePadding();
     local hx = imgui.GetCursorPosX();
-    local hint_w = math.max(60, W - (hx - x0));
-    imgui.TextColored({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, theme.safe(theme.fit(k.hint or '', hint_w)));
-    if imgui.IsItemHovered() and k.hint then tip(k.hint); end
+    local hint_w = math.max(60, W - (hx - x0) - 4);
+    theme.text_wrap({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, k.hint or '', hint_w);
+    if imgui.IsItemHovered() then kind_tip(k); end
 
     -- the narrowing
     if k.scope == 'spells' then
@@ -272,7 +286,7 @@ function when.draw(s, abbr, W)
             if cx + pw > sx + avail and cx > sx then cx = sx; cy = cy + theme.pill_h() + 5; end
             local on = contains(w.skills, sk);
             local c, h = theme.pill('##wh_sk' .. i, lbl, on, cx, cy);
-            if h then tip(on and ('Not ' .. sk) or ('Every ' .. sk .. ' spell')); end
+            if h then tip((on and ('Not ' .. sk) or ('Every ' .. sk .. ' spell')) .. (SUGGEST.SKILL[sk] and ('\n\nGood bonuses: ' .. SUGGEST.SKILL[sk]) or '')); end
             if c then
                 if on then for j = #w.skills, 1, -1 do if w.skills[j]:lower() == sk:lower() then table.remove(w.skills, j); end end
                 else w.skills[#w.skills + 1] = sk; end
@@ -298,14 +312,18 @@ function when.draw(s, abbr, W)
                 return a.name < b.name;
             end);
             return out;
-        end, 'Add a spell (Cure IV, Stoneskin...)', false) then changed = true; end
+        end, 'Add a spell (Cure IV, Stoneskin...)', false, function(n)
+            local se = game.spell_info(n);
+            local sg = se and SUGGEST.SKILL[se.skill or ''];
+            return sg and ((se.skill or '') .. ' - good bonuses: ' .. sg) or nil;
+        end) then changed = true; end
         imgui.EndGroup();
         if #w.names == 0 and #w.skills == 0 then
             imgui.SetCursorPosX(x0 + LW);
             imgui.TextColored(C.acc, 'Every spell.');
         end
         imgui.SetCursorPosX(x0 + LW);
-        imgui.TextColored({ C.muted[1], C.muted[2], C.muted[3], 0.75 }, 'Named spells win over a magic skill, a magic skill over every spell.');
+        theme.text_wrap({ C.muted[1], C.muted[2], C.muted[3], 0.75 }, 'Named spells win over a magic skill, a magic skill over every spell.');
     elseif k.scope == 'names' then
         imgui.Spacing();
         local what = ({ ws = 'Weapon skills', ja = 'Abilities', item = 'Items', pet = 'Pet moves' })[w.kind] or 'Names';
@@ -340,8 +358,15 @@ function when.draw(s, abbr, W)
             free = true;
             cands = function() return {}; end;
         end
-        if name_list('wh_nm', w.names, W - LW, cands, hint_, free) then changed = true; end
+        local info = nil;
+        if w.kind == 'ws' then info = SUGGEST.ws_text;
+        elseif w.kind == 'ja' then info = function(n) local t = SUGGEST.ja_text(n); return t and ('Good bonuses: ' .. t) or nil; end; end
+        if name_list('wh_nm', w.names, W - LW, cands, hint_, free, info) then changed = true; end
         if #w.names == 0 then imgui.TextColored(C.acc, 'All ' .. what:lower() .. '.'); end
+        if w.kind == 'ws' and #w.names > 0 then
+            local sts = SUGGEST.ws_stats(w.names);
+            if sts then theme.text_wrap({ C.gold[1], C.gold[2], C.gold[3], 0.85 }, 'Stats these use: ' .. sts .. ' - plus Attack, Accuracy and weapon skill damage.', W - LW); end
+        end
         imgui.EndGroup();
     end
 
@@ -417,7 +442,7 @@ function when.draw(s, abbr, W)
     if imgui.IsItemHovered() then tip('When two sets are worn at the same moment, the higher priority goes on top.'); end
     imgui.SameLine();
     imgui.AlignTextToFramePadding();
-    imgui.TextColored({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, 'Higher goes on top when two sets overlap.');
+    theme.text_wrap({ C.muted[1], C.muted[2], C.muted[3], 0.8 }, 'Higher goes on top when two sets overlap.', math.max(80, W - (imgui.GetCursorPosX() - x0) - 170));
     imgui.SameLine();
     local ox = imgui.GetCursorPosX();
     local right = x0 + W - 52 - tw('Use this set') - 10;

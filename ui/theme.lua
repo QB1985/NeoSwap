@@ -71,7 +71,9 @@ function theme.tip(t)
     imgui.PushStyleColor(ImGuiCol_Border, { 0.62, 0.40, 1.00, 0.55 });
     imgui.PushStyleColor(ImGuiCol_Text, { 0.93, 0.92, 0.98, 1 });
     if imgui.BeginTooltip() ~= false then
+        if imgui.PushTextWrapPos then imgui.PushTextWrapPos(460); end         -- (a long line wraps instead of running off)
         imgui.Text(safe(t));
+        if imgui.PopTextWrapPos then imgui.PopTextWrapPos(); end
         pcall(function()
             local dl = imgui.GetWindowDrawList();
             local wx, wy = imgui.GetWindowPos();
@@ -795,6 +797,7 @@ function theme.pick(id, opts, cur, w, ctl)
             local hl = pad_on and i == ctl.hi;
             local sx, sy = imgui.GetCursorScreenPos();
             if imgui.Selectable(' ' .. o[2] .. '##' .. id .. i, (pad_on and hl) or (not pad_on and i == k), 0, { lw_, 0 }) then picked = o[1]; end
+            if o[3] and (imgui.IsItemHovered() or hl) then theme.tip(o[3]); end
             if hl then                                                 -- (the controller's row: a neon edge, kept in view)
                 local ex = sx + lw_;
                 imgui.GetWindowDrawList():AddRect({ sx - 2, sy - 1 }, { ex + 2, sy + imgui.GetTextLineHeight() + 1 }, u32({ NEON2[1], NEON2[2], NEON2[3], 0.9 }), 5, C.rall, 1.5);
@@ -868,6 +871,33 @@ function theme.wrapped(dl, x, y, s, w, col)
     local lines = theme.wrap(s, w);
     for i, l in ipairs(lines) do dl:AddText({ x, y + (i - 1) * lh }, col, l); end
     return #lines * lh, lines;
+end
+
+-- Coloured text that wraps at `w` pixels from where it starts (w: the rest of the line if nil)
+function theme.text_wrap(col, s, w)
+    s = safe(tostring(s or ''));
+    if w == nil then
+        local ax = imgui.GetContentRegionAvail();
+        if type(ax) == 'table' then ax = ax.x or ax[1]; end
+        w = tonumber(ax) or 300;
+    end
+    if imgui.PushTextWrapPos then
+        imgui.PushTextWrapPos(imgui.GetCursorPosX() + math.max(40, w));
+        imgui.TextColored(col, s);
+        imgui.PopTextWrapPos();
+    else
+        local x, y = imgui.GetCursorScreenPos();
+        local h = theme.wrapped(imgui.GetWindowDrawList(), x, y, s, w, theme.u32(col));
+        imgui.Dummy({ w, h });
+    end
+end
+
+-- Text cut to fit w (an ellipsis), with the whole of it in a tooltip when it was cut. Draws at x, y on dl.
+function theme.fit_text(dl, x, y, col, s, w, hover_h)
+    s = tostring(s or '');
+    local f = theme.fit(s, w);
+    dl:AddText({ x, y }, col, f);
+    if f ~= s and imgui.IsMouseHoveringRect and imgui.IsMouseHoveringRect({ x, y }, { x + w, y + (hover_h or imgui.GetTextLineHeight()) }) then theme.tip(s); end
 end
 
 -- A scrolling area with no background of its own
