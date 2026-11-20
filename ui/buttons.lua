@@ -18,7 +18,8 @@ local drag = nil;          -- { key, sx, sy, wx, wy, moved }
 local DRAG_START = 5;      -- pixels before a press becomes a move
 local SNAP_RANGE = 18;     -- how close (pixels) a dragged button has to come to another to snap to it
 local SNAP_GAP   = 4;      -- the gap left between snapped buttons
-local rects = {};          -- where each button was last drawn: [key] = { x, y, w, h }
+local rects = {};          -- where each button was last drawn: [key] = { x, y, w, h, frame }
+local frame = 0;           -- (a button drawn this frame or the one before counts; the first one drawn needs the last frame's)
 
 -- The best place to snap a w x h button at (x, y) to, next to one of the others: { x, y, target, side } or nil.
 -- Beside one (left / right): lined up by top, centre or bottom. Above / below one: lined up by left, centre or right.
@@ -32,7 +33,7 @@ local function find_snap(key, x, y, w, h)
         end
     end
     for k, o in pairs(rects) do
-        if k ~= key and o.seen then
+        if k ~= key and (o.frame or -9) >= frame - 1 then
             local rows = { o.y, o.y + (o.h - h) / 2, o.y + o.h - h };            -- tops, centres, bottoms lined up
             local cols = { o.x, o.x + (o.w - w) / 2, o.x + o.w - w };            -- lefts, centres, rights lined up
             for _, ny in ipairs(rows) do
@@ -107,7 +108,7 @@ local function one(b)
         local x, y = imgui.GetCursorScreenPos();
         imgui.InvisibleButton('##nsbtn_hit_' .. key, { w, h });
         local hov, active = imgui.IsItemHovered(), imgui.IsItemActive();
-        rects[key] = { x = x, y = y, w = w, h = h, seen = true };
+        rects[key] = { x = x, y = y, w = w, h = h, frame = frame };
         local locked = config.get('buttons_locked') == true;
 
         -- press / drag / release
@@ -214,7 +215,7 @@ function buttons.draw()
     if config.get('buttons_shown') == false then return; end
     local list = buttons.list();
     if #list == 0 then return; end
-    for _, r in pairs(rects) do r.seen = false; end                       -- (only the buttons out now count for snapping)
+    frame = frame + 1;                                                   -- (only the buttons out now count for snapping)
     local nc, nv = theme.push(1, nil, { 0, 0 });
     for _, b in ipairs(list) do
         one(b);
