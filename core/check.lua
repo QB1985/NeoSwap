@@ -82,7 +82,8 @@ local function check_set(abbr, s, names_seen)
                         addt('info', sl .. ': ' .. nm .. ' is custom server gear; NeoSwap puts it on with /equip.');
                     elseif not items.fits(id, slot) then addt('err', sl .. ': ' .. nm .. ' doesn\'t go in this slot.', slot); end
                     if blank then
-                        -- (no job / level data to check)
+                        -- (no level data to trust; the job data, when there is some, is only a warning)
+                        if job and not items.job_ok(id, job) then addt('warn', sl .. ': the game says ' .. abbr .. ' can\'t wear ' .. nm .. '.', slot); end
                     elseif job and not items.job_ok(id, job) then addt('err', sl .. ': ' .. abbr .. ' can\'t wear ' .. nm .. '.', slot);
                     elseif jl > 0 and items.level(id) > jl and not future then
                         addt('warn', string.format('%s: %s needs level %d (your %s is %d).', sl, nm, items.level(id), abbr, jl), slot);

@@ -424,8 +424,9 @@ end
 function items.job_ok(id, job)
     local r = items.res(id);
     if r == nil then return false; end
-    if items.custom(id) then return true; end                        -- (blank data: anyone, as far as we know)
-    return bit.band(tonumber(r.Jobs) or 0, bit.lshift(1, job or 0)) ~= 0;
+    local jb = tonumber(r.Jobs) or 0;
+    if jb == 0 and (items.custom(id) or items.blank(id)) then return true; end   -- (custom gear with no job data: anyone, as far as we know)
+    return bit.band(jb, bit.lshift(1, job or 0)) ~= 0;
 end
 
 function items.two_handed(id)
