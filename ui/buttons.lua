@@ -22,8 +22,39 @@ local rects = {};          -- where each button was last drawn: [key] = { x, y, 
 local frame = 0;           -- (a button drawn this frame or the one before counts; the first one drawn needs the last frame's)
 
 -- The best place to snap a w x h button at (x, y) to, next to one of the others: { x, y, target, side } or nil.
+-- Is Shift held? (the io struct when the binding has it, else the keyboard state)
+local function shift_down()
+    local ok, v = pcall(function() return imgui.GetIO().KeyShift; end);
+    if ok and v ~= nil then return v == true; end
+    ok, v = pcall(function()
+        return (ImGuiKey_LeftShift and imgui.IsKeyDown(ImGuiKey_LeftShift)) or (ImGuiKey_RightShift and imgui.IsKeyDown(ImGuiKey_RightShift));
+    end);
+    return ok and v == true;
+end
+
+-- The buttons joined to one through others (edges within a snap gap of each other, overlapping along that edge):
+-- { [key] = true }, the button itself included
+local TOUCH = SNAP_GAP + 3;
+local function connected(key)
+    local group, todo = { [key] = true }, { key };
+    while #todo > 0 do
+        local a = rects[table.remove(todo)];
+        for k, o in pairs(rects) do
+            if not group[k] and a and (o.frame or -9) >= frame - 1 then
+                local overlap_y = a.y < o.y + o.h and o.y < a.y + a.h;
+                local overlap_x = a.x < o.x + o.w and o.x < a.x + a.w;
+                local near_x = math.abs(a.x + a.w - o.x) <= TOUCH or math.abs(o.x + o.w - a.x) <= TOUCH;
+                local near_y = math.abs(a.y + a.h - o.y) <= TOUCH or math.abs(o.y + o.h - a.y) <= TOUCH;
+                if (overlap_y and near_x) or (overlap_x and near_y) then group[k] = true; todo[#todo + 1] = k; end
+            end
+        end
+    end
+    return group;
+end
+local by_key = {};         -- [key] = the command, for the buttons out now
+
 -- Beside one (left / right): lined up by top, centre or bottom. Above / below one: lined up by left, centre or right.
-local function find_snap(key, x, y, w, h)
+local function find_snap(key, x, y, w, h, skip)
     if config.get('buttons_snap') == false then return nil; end
     local best, best_d = nil, nil;
     local function try(nx, ny, tk, side)
@@ -33,7 +64,7 @@ local function find_snap(key, x, y, w, h)
         end
     end
     for k, o in pairs(rects) do
-        if k ~= key and (o.frame or -9) >= frame - 1 then
+        if k ~= key and not (skip and skip[k]) and (o.frame or -9) >= frame - 1 then
             local rows = { o.y, o.y + (o.h - h) / 2, o.y + o.h - h };            -- tops, centres, bottoms lined up
             local cols = { o.x, o.x + (o.w - w) / 2, o.x + o.w - w };            -- lefts, centres, rights lined up
             for _, ny in ipairs(rows) do
@@ -115,20 +146,46 @@ local function one(b)
         if active and (drag == nil or drag.key ~= key) then
             local mx, my = xy(imgui.GetMousePos());
             drag = { key = key, sx = mx, sy = my, wx = tonumber(cmd.button.x) or x, wy = tonumber(cmd.button.y) or y, moved = false };
+            if shift_down() then
+                -- Shift: the buttons joined to this one come along, keeping their places
+                drag.group = connected(key);
+                drag.start = {};
+                for k in pairs(drag.group) do
+                    local c = by_key[k];
+                    if c and c.button then drag.start[k] = { x = tonumber(c.button.x) or 0, y = tonumber(c.button.y) or 0 }; end
+                end
+            end
         end
         if drag and drag.key == key then
             local mx, my = xy(imgui.GetMousePos());
             if active then
                 if not locked and not drag.moved and (math.abs(mx - drag.sx) > DRAG_START or math.abs(my - drag.sy) > DRAG_START) then drag.moved = true; end
                 if drag.moved then
-                    cmd.button.x = math.floor(drag.wx + mx - drag.sx);
-                    cmd.button.y = math.floor(drag.wy + my - drag.sy);
-                    drag.snap = find_snap(key, cmd.button.x, cmd.button.y, w, h);
+                    local dx, dy = mx - drag.sx, my - drag.sy;
+                    cmd.button.x = math.floor(drag.wx + dx);
+                    cmd.button.y = math.floor(drag.wy + dy);
+                    if drag.start then
+                        for k, p0 in pairs(drag.start) do
+                            local c = by_key[k];
+                            if c and c ~= cmd then c.button.x, c.button.y = math.floor(p0.x + dx), math.floor(p0.y + dy); end
+                        end
+                    end
+                    drag.snap = find_snap(key, cmd.button.x, cmd.button.y, w, h, drag.group);
                     drag.w, drag.h = w, h;
                 end
             else
                 if drag.moved then
-                    if drag.snap then cmd.button.x, cmd.button.y = drag.snap.x, drag.snap.y; end   -- (let go on a snap: line it up)
+                    if drag.snap then
+                        -- let go on a snap: line it up (and the ones it brought along, by the same amount)
+                        local ox, oy = drag.snap.x - cmd.button.x, drag.snap.y - cmd.button.y;
+                        cmd.button.x, cmd.button.y = drag.snap.x, drag.snap.y;
+                        if drag.start then
+                            for k in pairs(drag.start) do
+                                local c = by_key[k];
+                                if c and c ~= cmd then c.button.x, c.button.y = c.button.x + ox, c.button.y + oy; end
+                            end
+                        end
+                    end
                     store.touch();
                 elseif hov then
                     if running then commands.stop();
@@ -154,6 +211,9 @@ local function one(b)
             dl:AddText({ tx, y + (h - imgui.GetTextLineHeight()) / 2 }, u32({ 1, 1, 1, 1 }), label);
         end
         dl:AddRect({ x, y }, { x + w, y + h }, u32({ edge[1], edge[2], edge[3], (hov or running) and 0.95 or 0.55 }), r, C.rall, 1.5);
+        if drag and drag.moved and drag.group and drag.group[key] then
+            dl:AddRect({ x - 2, y - 2 }, { x + w + 2, y + h + 2 }, u32({ NEON2[1], NEON2[2], NEON2[3], 0.9 }), r + 2, C.rall, 2);
+        end
         if running then
             local t = os.clock() * 4;
             dl:AddCircleFilled(as_icon and { x + w - 7, y + 7 } or { x + 9, y + h / 2 }, 2.5 + math.sin(t) * 0.8, u32(NEON2), 12);
@@ -162,7 +222,7 @@ local function one(b)
             local a = tostring(cmd.alias or '');
             theme.tip((cmd.name or '') .. (a ~= '' and ('  (' .. a .. ')') or '') .. '\n\n' ..
                 (running and 'Click: stop it' or 'Click: run it') ..
-                (locked and '\n(Buttons are locked: /nswap buttons unlock to move them)' or '\nDrag: move it'));
+                (locked and '\n(Buttons are locked: /nswap buttons unlock to move them)' or '\nDrag: move it\nShift + drag: move it and the buttons joined to it'));
         end
       end);
       if not ok and not buttons._err then buttons._err = true; print('[NeoSwap] button error: ' .. tostring(e)); end
@@ -217,6 +277,7 @@ function buttons.draw()
     if #list == 0 then return; end
     frame = frame + 1;                                                   -- (only the buttons out now count for snapping)
     local nc, nv = theme.push(1, nil, { 0, 0 });
+    for _, b in ipairs(list) do by_key[b.owner .. '_' .. tostring(b.cmd.id)] = b.cmd; end
     for _, b in ipairs(list) do
         one(b);
     end

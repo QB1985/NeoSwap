@@ -115,7 +115,8 @@ command buttons show while you're that job; a custom entry's show on every job. 
 (or `/nswap buttons lock`) stops them being dragged by accident; `/nswap buttons hide` hides them all.
 Drag a button near another and it **snaps** beside it (or above / below it), lined up by the edge or the centre with a
 small gap: a dashed outline shows where it'll go and the other button's edge lights up; let go to put it there.
-*Snap command buttons* in the settings turns that off.
+*Snap command buttons* in the settings turns that off. **Shift + drag** a button to move it together with every button joined to it (side
+by side or stacked, through each other) - they keep their places, and the group snaps to other buttons as one.
 
 ## Import from LuAshitacast
 
