@@ -1545,6 +1545,13 @@ local function draw_bubble()
             if math.abs(dx) + math.abs(dy) > 4 then bub_drag.moved = true; end
             if bub_drag.moved then cfg.mini_x, cfg.mini_y = bub_drag.x + dx, bub_drag.y + dy; end
         end
+        if hov and imgui.IsMouseClicked(1) then
+            -- right click: swapping on / off
+            config.toggle('engine_on');
+            local on = config.get('engine_on');
+            local chat = require('chat');
+            print(chat.header('NeoSwap') .. chat.message(on and 'Swapping on.' or 'Swapping off: your gear is left alone.'));
+        end
         if imgui.IsItemDeactivated() and bub_drag then
             if bub_drag.moved then config.save(); else config.set('minimized', false); end
             bub_drag = nil;
@@ -1569,10 +1576,15 @@ local function draw_bubble()
         local tw_, th_ = theme.title_size('NSWP', scale);
         theme.title(dl, cx - tw_ / 2, cy - th_ / 2, 'NSWP', 1, scale);
         -- swapping: a green dot; off: none
-        if engine.active() then dl:AddCircleFilled({ cx + R * 0.70, cy - R * 0.70 }, 4, u32(C.good), 12); end
+        if engine.active() then dl:AddCircleFilled({ cx + R * 0.70, cy - R * 0.70 }, 4, u32(C.good), 12);
+        elseif not config.get('engine_on') then
+            -- swapping off: a hollow grey dot
+            dl:AddCircleFilled({ cx + R * 0.70, cy - R * 0.70 }, 4, u32({ 0.1, 0.1, 0.12, 1 }), 12);
+            dl:AddCircle({ cx + R * 0.70, cy - R * 0.70 }, 4, u32(C.muted), 12, 1.5);
+        end
         if hov and not (bub_drag and bub_drag.moved) then
             local l = engine.last;
-            tip('NeoSwap\nClick: open   Drag: move' .. (l and ('\nLast: ' .. table.concat(l.sets or {}, ' + ')) or ''));
+            tip('NeoSwap - swapping ' .. (config.get('engine_on') and 'on' or 'OFF') .. '\nClick: open   Drag: move   Right click: swapping on / off' .. (l and ('\nLast: ' .. table.concat(l.sets or {}, ' + ')) or ''));
         end
     end
     imgui.End();

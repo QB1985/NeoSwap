@@ -212,7 +212,7 @@ order (lower on top).
 | `/nswap item <name>` | what the game's data says about a piece (slots, jobs, level, icon) and how NeoSwap puts it on |
 | `/nswap save` | write your sets now |
 | `/nswap config` | settings |
-| `/nswap min` | minimize to the NSWP bubble |
+| `/nswap min` | minimize to the NSWP bubble (click it: open, drag: move, right click: swapping on / off) |
 | `/nswap opacity 60` | opacity (20 to 100) |
 
 ## Where your sets are
