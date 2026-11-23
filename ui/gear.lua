@@ -196,6 +196,7 @@ end
 
 function gear.picker(dl, W, H, slot, cur, opts)
     opts = opts or {};
+    local style_any = opts.style == true;                                    -- (a look can be any piece: no job / level filter)
     if slot ~= last_slot then last_slot = slot; search[1] = ''; end
     local lh = imgui.GetTextLineHeight();
     local x0, y0 = imgui.GetCursorScreenPos();
@@ -204,7 +205,8 @@ function gear.picker(dl, W, H, slot, cur, opts)
     dl:AddRect({ x0, y0 }, { x0 + W, y0 + H }, u32({ 1, 1, 1, 0.06 }), 10, C.rall, 1);
     local title = (bags.SLOT_NAME[slot] or '?'):upper();
     theme.spaced(dl, x0 + 12, y0 + 9, title, u32({ 0.93, 0.90, 1, 1 }), 2);
-    local job_txt = opts.job and ('for ' .. (jobs.ABBR[opts.job] or '?')) or 'any job';
+    local pjob = (not style_any) and opts.job or nil;
+    local job_txt = pjob and ('for ' .. (jobs.ABBR[pjob] or '?')) or 'any job';
     dl:AddText({ x0 + 18 + theme.spaced_w(title, 2), y0 + 9 }, u32(C.muted), job_txt);
     local cc, ch = theme.icon_button('##gp_close', x0 + W - 28, y0 + 7, 'close', 18);
     if ch then tip('Close the list (back to the totals)'); end
@@ -219,8 +221,8 @@ function gear.picker(dl, W, H, slot, cur, opts)
     if p then scope = p; end
     local ry = y0 + 34 + theme.pill_h() + 10;
     imgui.SetCursorScreenPos({ x0 + 12, ry });
-    if opts.job then
-        local wc, wh = theme.checkbox('##gp_wear', 'Hide pieces above ' .. (jobs.ABBR[opts.job] or '') .. '\'s level', only_wearable);
+    if pjob then
+        local wc, wh = theme.checkbox('##gp_wear', 'Hide pieces above ' .. (jobs.ABBR[pjob] or '') .. '\'s level', only_wearable);
         if wh then tip('Hide what this job is too low a level for'); end
         if wc then only_wearable = not only_wearable; list_cache.map = {}; list_cache.n = 0; end
     end
@@ -241,7 +243,7 @@ function gear.picker(dl, W, H, slot, cur, opts)
     local sy2 = ry + lh + 10;
     do
         local keys, seen = {}, {};
-        local all = rows_for(slot, opts.job, scope == 'owned', '', true);
+        local all = rows_for(slot, pjob, scope == 'owned', '', true);
         for _, r in ipairs(all) do for key in pairs(r.bon or {}) do if not seen[key] then seen[key] = true; keys[#keys + 1] = key; end end end
         table.sort(keys, function(a, b)
             local pa, pb = a:sub(1, 5) == 'Pet: ', b:sub(1, 5) == 'Pet: ';
@@ -270,7 +272,7 @@ function gear.picker(dl, W, H, slot, cur, opts)
     local list_y = sy2 + theme.pill_h() + 8;
     imgui.SetCursorScreenPos({ x0 + 6, list_y });
     local text = (search[1] or ''):lower():gsub('^%s+', ''):gsub('%s+$', '');
-    local rows = rows_for(slot, opts.job, scope == 'owned', text);
+    local rows = rows_for(slot, pjob, scope == 'owned', text);
     local pv = theme.begin_list('##gp_list', W - 12, y0 + H - list_y - 6);
     local ldl = imgui.GetWindowDrawList();
     imgui.Indent(5);
@@ -279,7 +281,7 @@ function gear.picker(dl, W, H, slot, cur, opts)
     if #rows == 0 then
         imgui.Dummy({ 10, 6 });
         local msg = scope == 'all' and #text < 2 and 'Type at least 2 letters to search every item.'
-            or (scope == 'owned' and 'Nothing you have fits here' .. (opts.job and (' for ' .. (jobs.ABBR[opts.job] or '')) or '') .. '. Try "Every item".' or 'Nothing found.');
+            or (scope == 'owned' and 'Nothing you have fits here' .. (pjob and (' for ' .. (jobs.ABBR[pjob] or '')) or '') .. '. Try "Every item".' or 'Nothing found.');
         theme.text_wrap(C.muted, msg);
     end
     local cur_sig = cur and cur.id and augments.want_text(cur) or '';
