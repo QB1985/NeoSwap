@@ -394,6 +394,7 @@ local function job_header(dl, abbr, W)
     head_ring(dl, 'lockstyle', sx, y + (fh - theme.pill_h()) / 2, sx + sw, y + (fh - theme.pill_h()) / 2 + theme.pill_h(), theme.pill_h() / 2);
     if pk and pk ~= j.lockstyle.mode then
         j.lockstyle.mode = pk; store.touch();
+        engine.style_changed(abbr);
         if pk == 'job' then st.style = true; st.slot = nil; end
     end
     local rh = math.max(fh, theme.pill_h());
@@ -1357,7 +1358,7 @@ function ui.on_action(a)
                 local k = 2;
                 for n, m in ipairs(LS) do if m == j.lockstyle.mode then k = n; end end
                 k = math.max(1, math.min(3, k + d));
-                if LS[k] ~= j.lockstyle.mode then j.lockstyle.mode = LS[k]; store.touch(); if LS[k] ~= 'job' then st.style = false; end end
+                if LS[k] ~= j.lockstyle.mode then j.lockstyle.mode = LS[k]; store.touch(); engine.style_changed(st.job); if LS[k] ~= 'job' then st.style = false; end end
             elseif a == 'left' then nav.zone = 'rail'; nav.moved = true;
             elseif it.key == 'mode' then store.set_mode(it.mode, not store.mode(it.mode));
             elseif it.key == 'macro' then j.macro.on = not j.macro.on; store.touch(); end
@@ -1369,7 +1370,7 @@ function ui.on_action(a)
             elseif it.key == 'macro' then j.macro.on = not j.macro.on; store.touch();
             elseif it.key == 'mode' then store.set_mode(it.mode, not store.mode(it.mode));
             elseif it.key == 'lockstyle' and j.lockstyle.mode ~= 'job' then
-                j.lockstyle.mode = (j.lockstyle.mode == 'off') and 'global' or (j.lockstyle.mode == 'global' and 'job' or 'off'); store.touch();
+                j.lockstyle.mode = (j.lockstyle.mode == 'off') and 'global' or (j.lockstyle.mode == 'global' and 'job' or 'off'); store.touch(); engine.style_changed(st.job);
             elseif it.key == 'lockstyle' or it.key == 'edit' then
                 st.style = true; st.slot = nil; st.import = nil; st.set = nil; nav.zone = 'grid'; nav.eq = 1;
             elseif (it.key == 'book' or it.key == 'page') then

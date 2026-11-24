@@ -715,6 +715,29 @@ function engine.apply_lockstyle(quiet)
     return n;
 end
 
+-- A job's lockstyle mode was changed in the window: if it's the job you're on, put it into effect now (a moment
+-- later, so flicking through Off / Global / Own sends only the last one)
+local style_gen = 0;
+function engine.style_changed(abbr)
+    if abbr == nil or abbr ~= engine.job_abbr() then return; end
+    style_gen = style_gen + 1;
+    local gen = style_gen;
+    engine.later(0.5, function()
+        if gen ~= style_gen or abbr ~= engine.job_abbr() then return; end
+        local set, mode = engine.style_for(abbr);
+        if set == nil then
+            AshitaCore:GetChatManager():QueueCommand(1, '/lockstyle off');
+            engine.lockstyle_on = false;
+            say(mode == 'off' and ('Lockstyle off for ' .. abbr .. '.') or 'Lockstyle off (the global lockstyle has no pieces).');
+        else
+            local any = false;
+            for sl = 0, 8 do if set[sl] and set[sl].id then any = true; end end
+            if not any then say(abbr .. '\'s own lockstyle has no pieces yet: pick them in its editor.');
+            else engine.apply_lockstyle(false); end
+        end
+    end);
+end
+
 function engine.apply_macros()
     local abbr = engine.job_abbr();
     local j = abbr and store.job(abbr);
